@@ -3,6 +3,18 @@
 #include "Throughput.h"
 #include "pdv.h"
 
+int hexdumpIPheader(void *h)
+{
+  int i; unsigned char *p;
+  p=(unsigned char *)h;
+  for ( i=0; i<20; i++ )
+  {
+    printf("%2x",(unsigned char)p[i]);
+  }   
+  printf("\n");
+  return 0;
+}
+
 int PDV::readCmdLine(int argc, const char *argv[])
 {
   if (Throughput::readCmdLine(argc - 1, argv) < 0)
@@ -17,7 +29,7 @@ int PDV::readCmdLine(int argc, const char *argv[])
 
 struct rte_mbuf *mkPDVTestFrame4(uint16_t length, rte_mempool *pkt_pool, const char *direction,
   const struct ether_addr *dst_mac, const struct ether_addr *src_mac,
-  const uint32_t *src_ip, uint32_t *dst_ip, unsigned var_sport, unsigned var_dport)
+  const uint32_t *src_ip, uint32_t *dst_ip)
 {
   // printf("inside mkTestFrame4: the beginning\n");
   struct rte_mbuf *pkt_mbuf = rte_pktmbuf_alloc(pkt_pool); // message buffer for the Test Frame
@@ -38,17 +50,24 @@ struct rte_mbuf *mkPDVTestFrame4(uint16_t length, rte_mempool *pkt_pool, const c
   int ip_length = length - sizeof(rte_ether_hdr);
   mkIpv4Header(ip_hdr, ip_length, src_ip, dst_ip); // Does not set IPv4 header checksum
   int udp_length = ip_length - sizeof(rte_ipv4_hdr);   // No IP Options are used
-  mkUdpHeader(udp_hd, udp_length, var_sport, var_dport);
+  mkUdpHeader(udp_hd, udp_length);
   int data_length = udp_length - sizeof(rte_udp_hdr);
   mkPDVData(udp_data, data_length);
-  udp_hd->dgram_cksum = rte_ipv4_udptcp_cksum(ip_hdr, udp_hd); // UDP checksum is calculated and set
+  // udp_hd->dgram_cksum = rte_ipv4_udptcp_cksum(ip_hdr, udp_hd); // UDP checksum is calculated and set
+  // The line above caused problem because the final step of the calculation was not reversible
+  // To be able to manipulate the UDP checksum later, the uncomplemented UDP checksum is stored below:
+  uint32_t cksum = rte_raw_cksum(udp_hd, udp_length);
+  cksum += rte_ipv4_phdr_cksum(ip_hdr, 0);
+  cksum = ((cksum & 0xffff0000) >> 16) + (cksum & 0xffff);
+  cksum = ((cksum & 0xffff0000) >> 16) + (cksum & 0xffff);  // twice must be enough
+  udp_hd->dgram_cksum = (uint16_t)cksum;    // The uncomplemented UDP checksum is stored (for further processing).
   ip_hdr->hdr_checksum = rte_ipv4_cksum(ip_hdr);               // IPv4 header checksum is set now
   return pkt_mbuf;
 }
 
 struct rte_mbuf *mkPDVTestFrame6(uint16_t length, rte_mempool *pkt_pool, const char *direction,
   const struct ether_addr *dst_mac, const struct ether_addr *src_mac,
-  struct in6_addr *src_ip, struct in6_addr *dst_ip, unsigned var_sport, unsigned var_dport)
+  struct in6_addr *src_ip, struct in6_addr *dst_ip)
 {
   struct rte_mbuf *pkt_mbuf = rte_pktmbuf_alloc(pkt_pool); // message buffer for the Test Frame
   if (!pkt_mbuf){
@@ -68,16 +87,16 @@ struct rte_mbuf *mkPDVTestFrame6(uint16_t length, rte_mempool *pkt_pool, const c
   int ip_length = length - sizeof(rte_ether_hdr);
   mkIpv6Header(ip_hdr, ip_length, src_ip, dst_ip, 0x11); //0x11 for UDP
   int udp_length = ip_length - sizeof(rte_ipv6_hdr); // No IP Options are used
-  mkUdpHeader(udp_hd, udp_length, var_sport, var_dport);
+  mkUdpHeader(udp_hd, udp_length);
   int data_length = udp_length - sizeof(rte_udp_hdr);
   mkPDVData(udp_data, data_length);
-  udp_hd->dgram_cksum = rte_ipv6_udptcp_cksum(ip_hdr, udp_hd); // UDP checksum is calculated and set
+  udp_hd->dgram_cksum = ~rte_ipv6_udptcp_cksum(ip_hdr, udp_hd); // the uncomplemented UDP checksum is calculated and set
   return pkt_mbuf;
 }
 
 struct rte_mbuf *mkPDVTestIpv4inIpv6Tun(uint16_t length, rte_mempool *pkt_pool, const char *direction,
   const struct ether_addr *dst_mac, const struct ether_addr *src_mac,
-  struct in6_addr *src_ipv6, struct in6_addr *dst_ipv6, unsigned var_sport, unsigned var_dport,
+  struct in6_addr *src_ipv6, struct in6_addr *dst_ipv6,
   const uint32_t *src_ipv4, uint32_t *dst_ipv4)
   {
     struct rte_mbuf *pkt_mbuf = rte_pktmbuf_alloc(pkt_pool); // message buffer for the Test Frame
@@ -101,11 +120,21 @@ struct rte_mbuf *mkPDVTestIpv4inIpv6Tun(uint16_t length, rte_mempool *pkt_pool, 
     int ipv4_length = ipv6_length - sizeof(rte_ipv6_hdr);
     mkIpv4Header(ipv4_hdr, ipv4_length, src_ipv4, dst_ipv4); // Does not set IPv4 header checksum
     int udp_length = ipv4_length - sizeof(rte_ipv4_hdr); // No IP Options are used
-    mkUdpHeader(udp_hd, udp_length, var_sport, var_dport);
+    mkUdpHeader(udp_hd, udp_length);
     int data_length = udp_length - sizeof(rte_udp_hdr);
     mkPDVData(udp_data, data_length);
-    udp_hd->dgram_cksum = rte_ipv4_udptcp_cksum(ipv4_hdr, udp_hd); // UDP checksum is calculated and set
-    ipv4_hdr->hdr_checksum = rte_ipv4_cksum(ipv4_hdr); 
+    // udp_hd->dgram_cksum = rte_ipv4_udptcp_cksum(ipv4_hdr, udp_hd); // UDP checksum is calculated and set
+    // The line above caused problem because the final step of the calculation was not reversible
+    // To be able to manipulate the UDP checksum later, the uncomplemented UDP checksum is stored below:
+    uint32_t cksum = rte_raw_cksum(udp_hd, udp_length);
+    cksum += rte_ipv4_phdr_cksum(ipv4_hdr, 0);
+    cksum = ((cksum & 0xffff0000) >> 16) + (cksum & 0xffff);
+    cksum = ((cksum & 0xffff0000) >> 16) + (cksum & 0xffff);  // twice must be enough
+    udp_hd->dgram_cksum = (uint16_t)cksum;    // The uncomplemented UDP checksum is stored (for further processing).
+    ipv4_hdr->hdr_checksum = rte_ipv4_cksum(ipv4_hdr);
+    // printf("DEBUG: IPv4 in IPv6 frame crated: header checksum: %x\n",ipv4_hdr->hdr_checksum); //DEBUG
+    // printf("DEBUG: IPv4 in IPv6 frame header: "); //DEBUG
+    // hexdumpIPheader(ipv4_hdr);
     return pkt_mbuf;
   }
 
@@ -305,7 +334,9 @@ int sendPDV(void *par)
   uint16_t sport, dport, bg_sport, bg_dport; // values of source and destination port numbers -- to be preserved, when increase or decrease is done
   uint16_t sp, dp;                           // values of source and destination port numbers -- temporary values
   uint16_t tunneled_frame_size = ipv6_frame_size + 20;
- 
+
+  unsigned char *DEBUG_fg_tun_ipv4_hdr[N];
+
   //for PDV
   uint64_t *fg_counter[N], *bg_counter[N]; // pointers to the given fields
   uint64_t *counter;                       // working pointer to the counter in the currently manipulated frame
@@ -316,7 +347,7 @@ int sendPDV(void *par)
     // create a foreground Test Frame
     if (direction == "reverse")
     {
-      fg_pkt_mbuf[i] = mkPDVTestFrame4(ipv4_frame_size, pkt_pool, direction, dst_mac, src_mac, src_ipv4_rev, dst_ipv4_rev, 0, 0); // TODO RM var_port-s from param list
+      fg_pkt_mbuf[i] = mkPDVTestFrame4(ipv4_frame_size, pkt_pool, direction, dst_mac, src_mac, src_ipv4_rev, dst_ipv4_rev);
       pkt = rte_pktmbuf_mtod(fg_pkt_mbuf[i], uint8_t *); // Access the Test Frame in the message buffer
       // the source ipv4 address will not be manipulated as it will permenantly be the tester-right-ipv4 (extracted from the dmr-ipv6 as done above)
       fg_ipv4_chksum[i] = (uint16_t *)(pkt + 24);
@@ -330,10 +361,9 @@ int sendPDV(void *par)
     }
     else
     { //"forward"
-      fg_pkt_mbuf[i] = mkPDVTestIpv4inIpv6Tun(tunneled_frame_size,pkt_pool,direction,dst_mac,src_mac, src_ipv6_forw, dst_ipv6_forw,0, 0, src_ipv4_forw, dst_ipv4_forw);
+      fg_pkt_mbuf[i] = mkPDVTestIpv4inIpv6Tun(tunneled_frame_size,pkt_pool,direction,dst_mac,src_mac, src_ipv6_forw, dst_ipv6_forw, src_ipv4_forw, dst_ipv4_forw);
       pkt = rte_pktmbuf_mtod(fg_pkt_mbuf[i], uint8_t *);
       fg_src_ipv6[i] = (struct in6_addr *)(pkt + 22);    // The source address should be manipulated as it will be the right address (i.e. changing each time) in the forward direction
-      // The destination address will not be manipulated as it will permenantly be the DMR IPv6 address(as done in the initilization above)
       fg_tun_ipv4_chksum[i] = (uint16_t *)(pkt + 64);
       fg_tun_ipv4_chksum_start = ~*fg_tun_ipv4_chksum[i];
       fg_src_tun_ipv4[i] = (uint32_t *)(pkt + 66);
@@ -341,14 +371,15 @@ int sendPDV(void *par)
       fg_udp_dport[i] = (uint16_t *)(pkt + 76);
       fg_udp_chksum[i] = (uint16_t *)(pkt + 80);
       fg_counter[i] = (uint64_t *)(pkt + 90);
+      DEBUG_fg_tun_ipv4_hdr[i] = (unsigned char *)(pkt + 54);
     }
-    fg_udp_chksum_start = ~*fg_udp_chksum[i]; // save the uncomplemented UDP checksum value (same for all values of "i")
+    fg_udp_chksum_start = *fg_udp_chksum[i]; // save the uncomplemented UDP checksum value (same for all values of "i")
 
     // Always create a backround Test Frame (it is always an IPv6 frame) regardless of the direction of the test
     // The source and destination IP addresses of the packet have already been set in the initialization above
     // and they will permenantely be the IP addresses of the left and right interfaces of the Tester 
     // and based on the direction of the test 
-    bg_pkt_mbuf[i] = mkTestFrame6(ipv6_frame_size, pkt_pool, direction, dst_mac, src_mac, src_bg, dst_bg, 0, 0);
+    bg_pkt_mbuf[i] = mkPDVTestFrame6(ipv6_frame_size, pkt_pool, direction, dst_mac, src_mac, src_bg, dst_bg);
     pkt = rte_pktmbuf_mtod(bg_pkt_mbuf[i], uint8_t *); // Access the Test Frame in the message buffer
     bg_udp_sport[i] = (uint16_t *)(pkt + 54);
     bg_udp_dport[i] = (uint16_t *)(pkt + 56);
@@ -357,8 +388,8 @@ int sendPDV(void *par)
   }
   
   //save the uncomplemented UDP checksum value (same for all values of [i]). So, [0] is enough
-  fg_udp_chksum_start = ~*fg_udp_chksum[0]; // for the foreground frames 
-  bg_udp_chksum_start = ~*bg_udp_chksum[0]; // same but for the background frames
+  fg_udp_chksum_start = *fg_udp_chksum[0]; // for the foreground frames
+  bg_udp_chksum_start = *bg_udp_chksum[0]; // same but for the background frames
   
   // save the uncomplemented IPv4 header checksum (same for all values of [i]). So, [0] is enough
   if (direction == "reverse") // in case of foreground IPv4 only
@@ -380,8 +411,9 @@ int sendPDV(void *par)
   // naive sender version: it is simple and fast
   for (sent_frames = 0; sent_frames < frames_to_send; sent_frames++)
   { // Main cycle for the number of frames to send
+    bool IsUDPoverIPv4;         // It is true for foreground frames, and false for background frames.
     // set the temporary variables (including several pointers) to handle the right pre-generated Test Frame
-    if (sent_frames % n < m)
+    if ( IsUDPoverIPv4 = sent_frames % n < m )
     {
       // foreground frame is to be sent
       psid = lwB4_array[current_lwB4].psid;
@@ -396,6 +428,9 @@ int sendPDV(void *par)
       {
         //Set the IPv4 packet fields, IP addresses, checksum
         ip_chksum = fg_tun_ipv4_chksum_start; // restore the uncomplemented IPv4 header checksum to add the checksum value of the destination IPv4 address
+        // printf("DEBUG: IPv4 in IPv6 frame to be sent: starting header checksum: %x\n", ip_chksum); //DEBUG
+        // printf("DEBUG: IPv4 in IPv6 frame header at start: "); //DEBUG
+        // hexdumpIPheader(DEBUG_fg_tun_ipv4_hdr[i]);
         *fg_src_tun_ipv4[i] = lwB4_array[current_lwB4].ipv4_addr; //set it with the CE's IPv4 address
         chksum += lwB4_array[current_lwB4].ipv4_addr_chksum; //add its chechsum to the UDP checksum
         ip_chksum += lwB4_array[current_lwB4].ipv4_addr_chksum; //and to the IPv4 header checksum
@@ -403,12 +438,12 @@ int sendPDV(void *par)
         ip_chksum = ((ip_chksum & 0xffff0000) >> 16) + (ip_chksum & 0xffff); // calculate 16-bit one's complement sum
         ip_chksum = ((ip_chksum & 0xffff0000) >> 16) + (ip_chksum & 0xffff); // calculate 16-bit one's complement sum
         ip_chksum = (~ip_chksum) & 0xffff;                                   // make one's complement
-        if (ip_chksum == 0)                                                  // checksum should not be 0 (0 means, no checksum is used)
-          ip_chksum = 0xffff;
         *fg_tun_ipv4_chksum[i] = (uint16_t)ip_chksum; //now set the IPv4 header checksum of the packet
+    
+        // printf("DEBUG: IPv4 in IPv6 frame to be sent: set header checksum: %x\n", *fg_tun_ipv4_chksum[i]); //DEBUG
+        // printf("DEBUG: IPv4 in IPv6 frame header when ready: "); //DEBUG
+        // hexdumpIPheader(DEBUG_fg_tun_ipv4_hdr[i]);
         
-        
-        //
         *fg_src_ipv6[i] = lwB4_array[current_lwB4].b4_ipv6_addr; // set it with the right address
 
         std::uniform_int_distribution<int> uni_dis_sport(lwB4_array[current_lwB4].min_port, lwB4_array[current_lwB4].max_port); // uniform distribution in [sport_min, sport_max]
@@ -426,7 +461,7 @@ int sendPDV(void *par)
       {
         ip_chksum = fg_ipv4_chksum_start; // restore the uncomplemented IPv4 header checksum to add the checksum value of the destination IPv4 address
 
-        *fg_dst_ipv4[i] = lwB4_array[current_lwB4].ipv4_addr; //set it with the CE's IPv4 address
+        *fg_dst_ipv4[i] = lwB4_array[current_lwB4].ipv4_addr; //set it with the LwB4's IPv4 address
 
         chksum += lwB4_array[current_lwB4].ipv4_addr_chksum; //add its chechsum to the UDP checksum
         ip_chksum += lwB4_array[current_lwB4].ipv4_addr_chksum; //and to the IPv4 header checksum
@@ -434,8 +469,6 @@ int sendPDV(void *par)
         ip_chksum = ((ip_chksum & 0xffff0000) >> 16) + (ip_chksum & 0xffff); // calculate 16-bit one's complement sum
         ip_chksum = ((ip_chksum & 0xffff0000) >> 16) + (ip_chksum & 0xffff); // calculate 16-bit one's complement sum
         ip_chksum = (~ip_chksum) & 0xffff;                                   // make one's complement
-        if (ip_chksum == 0)                                                  // checksum should not be 0 (0 means, no checksum is used)
-          ip_chksum = 0xffff;
         *fg_ipv4_chksum[i] = (uint16_t)ip_chksum; //now set the IPv4 header checksum of the packet
 
         // the dport_min and dport_max will be set according to the port range values of the selected port set and the dport will retrieve its last value within this range
@@ -486,11 +519,8 @@ int sendPDV(void *par)
     chksum = ((chksum & 0xffff0000) >> 16) + (chksum & 0xffff); // calculate 16-bit one's complement sum
     chksum = ((chksum & 0xffff0000) >> 16) + (chksum & 0xffff); // calculate 16-bit one's complement sum
     chksum = (~chksum) & 0xffff;                                // make one's complement
-   
-
-    if (chksum == 0){                                        // checksum should not be 0 (0 means, no checksum is used)
+    if ( unlikely( IsUDPoverIPv4 && chksum == 0 ) )             // over IPv4, checksum should not be 0 (0 means, no checksum is used)
       chksum = 0xffff;
-    }
     *udp_chksum = (uint16_t)chksum; // set the UDP checksum in the frame
 
     // finally, send the frame
@@ -649,8 +679,6 @@ void PDV::measure(uint16_t leftport, uint16_t rightport)
 
   if (reverse) 
   {
-    std::cout << "REVERSE FORGALOM VAN" << std::endl;
-    
     // Right to Left direction is active
     scp2 = senderCommonParameters(ipv6_frame_size, ipv4_frame_size, frame_rate, test_duration,
       n, m, hz, start_tsc, number_of_lwB4s, lwB4_array, &dut_ipv6_tunnel, &tester_fw_rec_ipv4,

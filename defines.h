@@ -31,7 +31,7 @@
 #define MAX_PORT_TRIALS 100     /* rte_eth_link_get() is attempted maximum so many times, and error is reported if still unsuccessful */
 #define START_DELAY 4000        /* Delay (ms) before senders start sending, used for synchronized start. Beware that DUT NICs need time to get ready! */
 #define TOLERANCE 1.00001       /* Maximum allowed time inaccuracy, 1.00001 allows 0.001% more time for sending */
-#define N 40			/* used for PDV and varport: all frames exist is N copies to mitigate the problem of write after send */
+#define N 10			/* used for PDV and varport: all frames exist is N copies to mitigate the problem of write after send */
 
 // values taken from DPDK sample programs
 #define MAX_PKT_BURST 32        /* Maximum burst size for rte_eth_rx_burst() */

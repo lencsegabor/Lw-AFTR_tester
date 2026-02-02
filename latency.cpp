@@ -353,12 +353,12 @@ int sendLatency(void *par)
   // naive sender version: it is simple and fast
   for (sent_frames = 0; sent_frames < frames_to_send; sent_frames++)
   { // Main cycle for the number of frames to send
+    bool IsUDPoverIPv4;         // It is true for foreground frames, and false for background frames.
     // set the temporary variables (including several pointers) to handle the right pre-generated Test Frame
-    
     if (unlikely(sent_frames == send_next_latency_frame))
     {
       // a latency frame is to be sent
-      if (sent_frames % n < m)
+      if ( IsUDPoverIPv4 = sent_frames % n < m )
       {
         // foreground frame is to be sent
         psid = lwB4_array[current_lwB4].psid;
@@ -453,7 +453,7 @@ int sendLatency(void *par)
     else 
     {  
       // a normal frame is to be sent
-      if (sent_frames % n < m)
+      if ( IsUDPoverIPv4 = sent_frames % n < m )
       {
         // foreground frame is to be sent
         psid = lwB4_array[current_lwB4].psid;
@@ -476,8 +476,6 @@ int sendLatency(void *par)
           ip_chksum = (~ip_chksum) & 0xffff;                                   // make one's complement
           *fg_tun_ipv4_chksum[i] = (uint16_t)ip_chksum; //now set the IPv4 header checksum of the packet
           
-          
-          //
           *fg_src_ipv6[i] = lwB4_array[current_lwB4].b4_ipv6_addr; 
 
           std::uniform_int_distribution<int> uni_dis_sport(lwB4_array[current_lwB4].min_port, lwB4_array[current_lwB4].max_port); // uniform distribution in [sport_min, sport_max]
@@ -553,11 +551,8 @@ int sendLatency(void *par)
     chksum = ((chksum & 0xffff0000) >> 16) + (chksum & 0xffff); // calculate 16-bit one's complement sum
     chksum = ((chksum & 0xffff0000) >> 16) + (chksum & 0xffff); // calculate 16-bit one's complement sum
     chksum = (~chksum) & 0xffff;                                // make one's complement
-
-    if (chksum == 0){                                        // checksum should not be 0 (0 means, no checksum is used)
+    if ( unlikely( IsUDPoverIPv4 && chksum == 0 ) )             // over IPv4, checksum should not be 0 (0 means, no checksum is used)
       chksum = 0xffff;
-    }
-
     *udp_chksum = (uint16_t)chksum; // set the UDP checksum in the frame
 
     // finally, send the frame
