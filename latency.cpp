@@ -232,7 +232,7 @@ int sendLatency(void *par)
     // create a foreground Test Frame
     if (direction == "reverse")
     {
-      fg_pkt_mbuf[i] = mkTestFrame4(ipv4_frame_size, pkt_pool, direction, dst_mac, src_mac, src_ipv4_rev, dst_ipv4_rev, 0, 0); // TODO RM var_port-s from param list
+      fg_pkt_mbuf[i] = mkTestFrame4(ipv4_frame_size, pkt_pool, direction, dst_mac, src_mac, src_ipv4_rev, dst_ipv4_rev);
       pkt = rte_pktmbuf_mtod(fg_pkt_mbuf[i], uint8_t *); // Access the Test Frame in the message buffer
       // the source ipv4 address will not be manipulated as it will permenantly be the tester-right-ipv4 (extracted from the dmr-ipv6 as done above)
       fg_ipv4_chksum[i] = (uint16_t *)(pkt + 24);
@@ -245,7 +245,7 @@ int sendLatency(void *par)
     }
     else
     { //"forward"
-      fg_pkt_mbuf[i] = mkTestIpv4inIpv6Tun(tunneled_frame_size,pkt_pool,direction,dst_mac,src_mac, src_ipv6_forw, dst_ipv6_forw,0, 0, src_ipv4_forw, dst_ipv4_forw);
+      fg_pkt_mbuf[i] = mkTestIpv4inIpv6Tun(tunneled_frame_size,pkt_pool,direction,dst_mac,src_mac, src_ipv6_forw, dst_ipv6_forw, src_ipv4_forw, dst_ipv4_forw);
       pkt = rte_pktmbuf_mtod(fg_pkt_mbuf[i], uint8_t *);
       fg_src_ipv6[i] = (struct in6_addr *)(pkt + 22);    // The source address should be manipulated as it will be the right address (i.e. changing each time) in the forward direction
       // The destination address will not be manipulated as it will permenantly be the DMR IPv6 address(as done in the initilization above)
@@ -256,13 +256,13 @@ int sendLatency(void *par)
       fg_udp_dport[i] = (uint16_t *)(pkt + 76);
       fg_udp_chksum[i] = (uint16_t *)(pkt + 80);
     }
-    fg_udp_chksum_start = ~*fg_udp_chksum[i]; // save the uncomplemented UDP checksum value (same for all values of "i")
+    fg_udp_chksum_start = *fg_udp_chksum[i]; // save the uncomplemented UDP checksum value (same for all values of "i")
 
     // Always create a backround Test Frame (it is always an IPv6 frame) regardless of the direction of the test
     // The source and destination IP addresses of the packet have already been set in the initialization above
     // and they will permenantely be the IP addresses of the left and right interfaces of the Tester 
     // and based on the direction of the test, set previously
-    bg_pkt_mbuf[i] = mkTestFrame6(ipv6_frame_size, pkt_pool, direction, dst_mac, src_mac, src_bg, dst_bg, 0, 0);
+    bg_pkt_mbuf[i] = mkTestFrame6(ipv6_frame_size, pkt_pool, direction, dst_mac, src_mac, src_bg, dst_bg);
     pkt = rte_pktmbuf_mtod(bg_pkt_mbuf[i], uint8_t *); // Access the Test Frame in the message buffer
     bg_udp_sport[i] = (uint16_t *)(pkt + 54);
     bg_udp_dport[i] = (uint16_t *)(pkt + 56);
@@ -284,7 +284,7 @@ int sendLatency(void *par)
       // foreground latency frame, may be IPv4 or IPv6
       if (direction == "reverse")
       { 
-        latency_frames[i] = mkLatencyTestFrame4(ipv4_frame_size, pkt_pool, direction, dst_mac, src_mac, src_ipv4_rev, dst_ipv4_rev, 0, 0, i); // TODO RM var_port-s from param list
+        latency_frames[i] = mkLatencyTestFrame4(ipv4_frame_size, pkt_pool, direction, dst_mac, src_mac, src_ipv4_rev, dst_ipv4_rev, i);
         pkt = rte_pktmbuf_mtod(latency_frames[i], uint8_t *); // Access the Test Frame in the message buffer
         // the source ipv4 address will not be manipulated as it will permenantly be the tester-right-ipv4 (extracted from the dmr-ipv6 as done above)
         lat_fg_ipv4_chksum[i] = (uint16_t *)(pkt + 24);
@@ -297,7 +297,7 @@ int sendLatency(void *par)
       }
       else
       { // "forward"
-        latency_frames[i] = mkLatencyTestIpv4inIpv6Tun(tunneled_frame_size,pkt_pool,direction,dst_mac,src_mac, src_ipv6_forw, dst_ipv6_forw,0, 0, src_ipv4_forw, dst_ipv4_forw, i);
+        latency_frames[i] = mkLatencyTestIpv4inIpv6Tun(tunneled_frame_size,pkt_pool,direction,dst_mac,src_mac, src_ipv6_forw, dst_ipv6_forw, src_ipv4_forw, dst_ipv4_forw, i);
         pkt = rte_pktmbuf_mtod(latency_frames[i], uint8_t *);
         lat_fg_src_ipv6[i] = (struct in6_addr *)(pkt + 22);    // The source address should be manipulated as it will be the right address (i.e. changing each time) in the forward direction
         // The destination address will not be manipulated as it will permenantly be the DMR IPv6 address(as done in the initilization above)
@@ -316,7 +316,7 @@ int sendLatency(void *par)
       // The source and destination IP addresses of the packet have already been set in the initialization above
       // and they will permenantely be the IP addresses of the left and right interfaces of the Tester 
       // and based on the direction of the test, set previously
-      latency_frames[i] = mkLatencyTestFrame6(ipv6_frame_size, pkt_pool, direction, dst_mac, src_mac, src_bg, dst_bg, 0, 0, i);
+      latency_frames[i] = mkLatencyTestFrame6(ipv6_frame_size, pkt_pool, direction, dst_mac, src_mac, src_bg, dst_bg, i);
       pkt = rte_pktmbuf_mtod(latency_frames[i], uint8_t *); // Access the Test Frame in the message buffer
       lat_bg_udp_sport[i] = (uint16_t *)(pkt + 54);
       lat_bg_udp_dport[i] = (uint16_t *)(pkt + 56);
@@ -327,8 +327,8 @@ int sendLatency(void *par)
   //std::cout << "LATENCY BUFFERS CREATED" << std::endl;
 
   //save the uncomplemented UDP checksum value (same for all values of [i]). So, [0] is enough
-  fg_udp_chksum_start = ~*fg_udp_chksum[0]; // for the foreground frames 
-  bg_udp_chksum_start = ~*bg_udp_chksum[0]; // same but for the background frames
+  fg_udp_chksum_start = *fg_udp_chksum[0]; // for the foreground frames 
+  bg_udp_chksum_start = *bg_udp_chksum[0]; // same but for the background frames
   
   // save the uncomplemented IPv4 header checksum (same for all values of [i]). So, [0] is enough
   if (direction == "reverse") // in case of foreground IPv4 only
@@ -362,7 +362,7 @@ int sendLatency(void *par)
       {
         // foreground frame is to be sent
         psid = lwB4_array[current_lwB4].psid;
-        chksum = (uint16_t) ~*lat_fg_udp_chksum[latency_timestamp_no];; // restore the uncomplemented UDP checksum to add the values of the varying fields
+        chksum = (uint16_t) *lat_fg_udp_chksum[latency_timestamp_no];; // read the uncomplemented UDP checksum to add the values of the varying fields
         udp_sport = lat_fg_udp_sport[latency_timestamp_no];
         udp_dport = lat_fg_udp_dport[latency_timestamp_no];
         udp_chksum = lat_fg_udp_chksum[latency_timestamp_no];
@@ -371,7 +371,7 @@ int sendLatency(void *par)
         if (direction == "forward")
         {
           //Set the IPv4 packet fields, IP addresses, checksum
-          ip_chksum = lat_fg_tun_ipv4_chksum_start; // restore the uncomplemented IPv4 header checksum to add the checksum value of the destination IPv4 address
+          ip_chksum = lat_fg_tun_ipv4_chksum_start; // read the uncomplemented IPv4 header checksum to add the checksum value of the destination IPv4 address
           *lat_fg_src_tun_ipv4[latency_timestamp_no] = lwB4_array[current_lwB4].ipv4_addr; //set it with the CE's IPv4 address
           chksum += lwB4_array[current_lwB4].ipv4_addr_chksum; //add its chechsum to the UDP checksum
           ip_chksum += lwB4_array[current_lwB4].ipv4_addr_chksum; //and to the IPv4 header checksum
@@ -379,8 +379,6 @@ int sendLatency(void *par)
           ip_chksum = ((ip_chksum & 0xffff0000) >> 16) + (ip_chksum & 0xffff); // calculate 16-bit one's complement sum
           ip_chksum = ((ip_chksum & 0xffff0000) >> 16) + (ip_chksum & 0xffff); // calculate 16-bit one's complement sum
           ip_chksum = (~ip_chksum) & 0xffff;                                   // make one's complement
-          if (ip_chksum == 0)                                                  // checksum should not be 0 (0 means, no checksum is used)
-            ip_chksum = 0xffff;
           *lat_fg_tun_ipv4_chksum[latency_timestamp_no] = (uint16_t)ip_chksum; //now set the IPv4 header checksum of the packet
           
           *lat_fg_src_ipv6[latency_timestamp_no] = lwB4_array[current_lwB4].b4_ipv6_addr;
@@ -400,15 +398,13 @@ int sendLatency(void *par)
 
         if (direction == "reverse")
         {
-          ip_chksum = lat_fg_ipv4_chksum_start; // restore the uncomplemented IPv4 header checksum to add the checksum value of the destination IPv4 address
+          ip_chksum = lat_fg_ipv4_chksum_start; // read the uncomplemented IPv4 header checksum to add the checksum value of the destination IPv4 address
           *lat_fg_dst_ipv4[latency_timestamp_no] = lwB4_array[current_lwB4].ipv4_addr; //set it with the CE's IPv4 address
           chksum += lwB4_array[current_lwB4].ipv4_addr_chksum; //add its chechsum to the UDP checksum
           ip_chksum += lwB4_array[current_lwB4].ipv4_addr_chksum; //and to the IPv4 header checksum
           ip_chksum = ((ip_chksum & 0xffff0000) >> 16) + (ip_chksum & 0xffff); // calculate 16-bit one's complement sum
           ip_chksum = ((ip_chksum & 0xffff0000) >> 16) + (ip_chksum & 0xffff); // calculate 16-bit one's complement sum
           ip_chksum = (~ip_chksum) & 0xffff;                                   // make one's complement
-          if (ip_chksum == 0)                                                  // checksum should not be 0 (0 means, no checksum is used)
-            ip_chksum = 0xffff;
           
           *lat_fg_ipv4_chksum[latency_timestamp_no] = (uint16_t)ip_chksum; //now set the IPv4 header checksum of the packet
           // the dport_min and dport_max will be set according to the port range values of the selected port set and the dport will retrieve its last value within this range
@@ -430,7 +426,7 @@ int sendLatency(void *par)
       {
         // background frame is to be sent
         // from here, we need to handle the background frame identified by the temporary variables
-        //chksum = lat_bg_udp_chksum_start; // restore the uncomplemented UDP checksum to add the values of the varying fields
+        chksum = (uint16_t) *lat_bg_udp_chksum[latency_timestamp_no];; // read the uncomplemented UDP checksum to add the values of the varying fields
         udp_sport = lat_bg_udp_sport[latency_timestamp_no];
         udp_dport = lat_bg_udp_dport[latency_timestamp_no];
         udp_chksum = lat_bg_udp_chksum[latency_timestamp_no];
@@ -461,7 +457,7 @@ int sendLatency(void *par)
       {
         // foreground frame is to be sent
         psid = lwB4_array[current_lwB4].psid;
-        chksum = fg_udp_chksum_start; // restore the uncomplemented UDP checksum to add the values of the varying fields
+        chksum = fg_udp_chksum_start; // read the uncomplemented UDP checksum to add the values of the varying fields
         udp_sport = fg_udp_sport[i];
         udp_dport = fg_udp_dport[i];
         udp_chksum = fg_udp_chksum[i];
@@ -470,7 +466,7 @@ int sendLatency(void *par)
         if (direction == "forward")
         {
           //Set the IPv4 packet fields, IP addresses, checksum
-          ip_chksum = fg_tun_ipv4_chksum_start; // restore the uncomplemented IPv4 header checksum to add the checksum value of the destination IPv4 address
+          ip_chksum = fg_tun_ipv4_chksum_start; // read the uncomplemented IPv4 header checksum to add the checksum value of the destination IPv4 address
           *fg_src_tun_ipv4[i] = lwB4_array[current_lwB4].ipv4_addr; //set it with the CE's IPv4 address
           chksum += lwB4_array[current_lwB4].ipv4_addr_chksum; //add its chechsum to the UDP checksum
           ip_chksum += lwB4_array[current_lwB4].ipv4_addr_chksum; //and to the IPv4 header checksum
@@ -478,8 +474,6 @@ int sendLatency(void *par)
           ip_chksum = ((ip_chksum & 0xffff0000) >> 16) + (ip_chksum & 0xffff); // calculate 16-bit one's complement sum
           ip_chksum = ((ip_chksum & 0xffff0000) >> 16) + (ip_chksum & 0xffff); // calculate 16-bit one's complement sum
           ip_chksum = (~ip_chksum) & 0xffff;                                   // make one's complement
-          if (ip_chksum == 0)                                                  // checksum should not be 0 (0 means, no checksum is used)
-            ip_chksum = 0xffff;
           *fg_tun_ipv4_chksum[i] = (uint16_t)ip_chksum; //now set the IPv4 header checksum of the packet
           
           
@@ -499,7 +493,7 @@ int sendLatency(void *par)
 
         if (direction == "reverse")
         {
-          ip_chksum = fg_ipv4_chksum_start; // restore the uncomplemented IPv4 header checksum to add the checksum value of the destination IPv4 address
+          ip_chksum = fg_ipv4_chksum_start; // read the uncomplemented IPv4 header checksum to add the checksum value of the destination IPv4 address
 
           *fg_dst_ipv4[i] = lwB4_array[current_lwB4].ipv4_addr; //set it with the CE's IPv4 address
 
@@ -509,8 +503,6 @@ int sendLatency(void *par)
           ip_chksum = ((ip_chksum & 0xffff0000) >> 16) + (ip_chksum & 0xffff); // calculate 16-bit one's complement sum
           ip_chksum = ((ip_chksum & 0xffff0000) >> 16) + (ip_chksum & 0xffff); // calculate 16-bit one's complement sum
           ip_chksum = (~ip_chksum) & 0xffff;                                   // make one's complement
-          if (ip_chksum == 0)                                                  // checksum should not be 0 (0 means, no checksum is used)
-            ip_chksum = 0xffff;
           *fg_ipv4_chksum[i] = (uint16_t)ip_chksum; //now set the IPv4 header checksum of the packet
 
           // the dport_min and dport_max will be set according to the port range values of the selected port set and the dport will retrieve its last value within this range
@@ -532,7 +524,7 @@ int sendLatency(void *par)
       {
         // background frame is to be sent
         // from here, we need to handle the background frame identified by the temporary variables
-        chksum = bg_udp_chksum_start; // restore the uncomplemented UDP checksum to add the values of the varying fields
+        chksum = bg_udp_chksum_start; // read the uncomplemented UDP checksum to add the values of the varying fields
         udp_sport = bg_udp_sport[i];
         udp_dport = bg_udp_dport[i];
         udp_chksum = bg_udp_chksum[i];
@@ -588,7 +580,6 @@ int sendLatency(void *par)
     }
 
     current_lwB4 = (current_lwB4 + 1) % num_of_lwB4s; // proceed to the next CE element in the CE array
-    i = (i + 1) % N;
   } // this is the end of the sending cycle
 
   // Now, we check the time
@@ -840,7 +831,7 @@ void evaluateLatency(uint16_t num_of_tagged, uint64_t *send_ts, uint64_t *receiv
 }
 struct rte_mbuf *mkLatencyTestFrame4(uint16_t length, rte_mempool *pkt_pool, const char *direction,
     const struct ether_addr *dst_mac, const struct ether_addr *src_mac,
-    const uint32_t *src_ip, uint32_t *dst_ip, unsigned var_sport, unsigned var_dport, uint16_t id)
+    const uint32_t *src_ip, uint32_t *dst_ip, uint16_t id)
 {
     struct rte_mbuf *pkt_mbuf = rte_pktmbuf_alloc(pkt_pool); // message buffer for the Test Frame
     if (!pkt_mbuf){
@@ -860,17 +851,24 @@ struct rte_mbuf *mkLatencyTestFrame4(uint16_t length, rte_mempool *pkt_pool, con
     int ip_length = length - sizeof(rte_ether_hdr);
     mkIpv4Header(ip_hdr, ip_length, src_ip, dst_ip); // Does not set IPv4 header checksum
     int udp_length = ip_length - sizeof(rte_ipv4_hdr);   // No IP Options are used
-    mkUdpHeader(udp_hd, udp_length, var_sport, var_dport);
+    mkUdpHeader(udp_hd, udp_length); // sets UPD port numbers and checksum to 0.
     int data_length = udp_length - sizeof(rte_udp_hdr);
     mkLatencyData(udp_data, data_length, id);
-    udp_hd->dgram_cksum = rte_ipv4_udptcp_cksum(ip_hdr, udp_hd); // UDP checksum is calculated and set
+    // udp_hd->dgram_cksum = rte_ipv4_udptcp_cksum(ip_hdr, udp_hd); // UDP checksum is calculated and set
+    // The line above caused problem because the final step of the calculation was not reversible
+    // To be able to manipulate the UDP checksum later, the uncomplemented UDP checksum is stored below:
+    uint32_t cksum = rte_raw_cksum(udp_hd, udp_length);
+    cksum += rte_ipv4_phdr_cksum(ip_hdr, 0);
+    cksum = ((cksum & 0xffff0000) >> 16) + (cksum & 0xffff);
+    cksum = ((cksum & 0xffff0000) >> 16) + (cksum & 0xffff);  // twice must be enough
+    udp_hd->dgram_cksum = (uint16_t)cksum;    // The uncomplemented UDP checksum is stored (for further processing).
     ip_hdr->hdr_checksum = rte_ipv4_cksum(ip_hdr);               // IPv4 header checksum is set now
     return pkt_mbuf;
 }
 
 struct rte_mbuf *mkLatencyTestFrame6(uint16_t length, rte_mempool *pkt_pool, const char *direction,
   const struct ether_addr *dst_mac, const struct ether_addr *src_mac,
-  struct in6_addr *src_ip, struct in6_addr *dst_ip, unsigned var_sport, unsigned var_dport, uint16_t id)
+  struct in6_addr *src_ip, struct in6_addr *dst_ip, uint16_t id)
 {
   struct rte_mbuf *pkt_mbuf = rte_pktmbuf_alloc(pkt_pool); // message buffer for the Test Frame
   if (!pkt_mbuf){
@@ -890,16 +888,16 @@ struct rte_mbuf *mkLatencyTestFrame6(uint16_t length, rte_mempool *pkt_pool, con
   int ip_length = length - sizeof(rte_ether_hdr);
   mkIpv6Header(ip_hdr, ip_length, src_ip, dst_ip, 0x11); //0x11 for UDP
   int udp_length = ip_length - sizeof(rte_ipv6_hdr); // No IP Options are used
-  mkUdpHeader(udp_hd, udp_length, var_sport, var_dport);
+  mkUdpHeader(udp_hd, udp_length); // sets UPD port numbers and checksum to 0.
   int data_length = udp_length - sizeof(rte_udp_hdr);
   mkLatencyData(udp_data, data_length, id);
-  udp_hd->dgram_cksum = rte_ipv6_udptcp_cksum(ip_hdr, udp_hd); // UDP checksum is calculated and set
+  udp_hd->dgram_cksum = ~rte_ipv6_udptcp_cksum(ip_hdr, udp_hd); // the uncomplemented UDP checksum is calculated and set
   return pkt_mbuf;
 }
 
 struct rte_mbuf *mkLatencyTestIpv4inIpv6Tun(uint16_t length, rte_mempool *pkt_pool, const char *direction,
     const struct ether_addr *dst_mac, const struct ether_addr *src_mac,
-    struct in6_addr *src_ipv6, struct in6_addr *dst_ipv6, unsigned var_sport, unsigned var_dport,
+    struct in6_addr *src_ipv6, struct in6_addr *dst_ipv6,
     const uint32_t *src_ipv4, uint32_t *dst_ipv4, uint16_t id)
 {
     struct rte_mbuf *pkt_mbuf = rte_pktmbuf_alloc(pkt_pool); // message buffer for the Test Frame
@@ -923,11 +921,17 @@ struct rte_mbuf *mkLatencyTestIpv4inIpv6Tun(uint16_t length, rte_mempool *pkt_po
   int ipv4_length = ipv6_length - sizeof(rte_ipv6_hdr);
   mkIpv4Header(ipv4_hdr, ipv4_length, src_ipv4, dst_ipv4); // Does not set IPv4 header checksum
   int udp_length = ipv4_length - sizeof(rte_ipv4_hdr); // No IP Options are used
-  mkUdpHeader(udp_hd, udp_length, var_sport, var_dport);
+  mkUdpHeader(udp_hd, udp_length); // sets UPD port numbers and checksum to 0.
   int data_length = udp_length - sizeof(rte_udp_hdr);
   mkLatencyData(udp_data, data_length, id);
-  udp_hd->dgram_cksum = rte_ipv4_udptcp_cksum(ipv4_hdr, udp_hd); // UDP checksum is calculated and set
-  //Kell az IPv4-re külön checksumot számolni?
+  // udp_hd->dgram_cksum = rte_ipv4_udptcp_cksum(ipv4_hdr, udp_hd); // UDP checksum is calculated and set
+  // The line above caused problem because the final step of the calculation was not reversible
+  // To be able to manipulate the UDP checksum later, the uncomplemented UDP checksum is stored below:
+  uint32_t cksum = rte_raw_cksum(udp_hd, udp_length);
+  cksum += rte_ipv4_phdr_cksum(ipv4_hdr, 0);
+  cksum = ((cksum & 0xffff0000) >> 16) + (cksum & 0xffff);
+  cksum = ((cksum & 0xffff0000) >> 16) + (cksum & 0xffff);  // twice must be enough
+  udp_hd->dgram_cksum = (uint16_t)cksum;    // The uncomplemented UDP checksum is stored (for further processing).
   ipv4_hdr->hdr_checksum = rte_ipv4_cksum(ipv4_hdr); 
   return pkt_mbuf;
 }
@@ -941,10 +945,8 @@ void mkLatencyData(uint8_t *data, uint16_t length, uint16_t latency_frame_id)
   data += 8;
   length -= 8;
   *(uint16_t *)data = latency_frame_id;
-  //data += 2;
-  data += 1;
-  //length -= 2;
-  length -= 1;
+  data += 2;
+  length -= 2;
   
   for (i = 0; i < length; i++){
     data[i] = i % 256;

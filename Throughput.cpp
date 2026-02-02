@@ -934,7 +934,7 @@ struct rte_mbuf *mkTestFrame6(uint16_t length, rte_mempool *pkt_pool, const char
   mkUdpHeader(udp_hd, udp_length);
   int data_length = udp_length - sizeof(rte_udp_hdr);
   mkData(udp_data, data_length);
-  udp_hd->dgram_cksum = rte_ipv6_udptcp_cksum(ip_hdr, udp_hd); // UDP checksum is calculated and set
+  udp_hd->dgram_cksum = ~rte_ipv6_udptcp_cksum(ip_hdr, udp_hd); // the uncomplemented UDP checksum is calculated and set
   return pkt_mbuf;
 }
 
