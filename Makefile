@@ -2,7 +2,15 @@
 # Copyright(c) 2010-2014 Intel Corporation
 
 # binary name
-APP = lw4o6_tester
+ifeq ($(TARGET),tp)
+    APP = lwaftr-tp
+endif
+ifeq ($(TARGET),lat)
+    APP = lwaftr-lat
+endif
+ifeq ($(TARGET),pdv)
+    APP = lwaftr-pdv
+endif
 
 CC = g++
 
