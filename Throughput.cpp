@@ -10,10 +10,10 @@ Throughput::Throughput(){
   forward = 1;                   // default value, forward direction is active
   reverse = 1;                   // default value, reverse direction is active
   promisc = 0;                   // default value, promiscuous mode is inactive
-  cpu_fw_send = -1;          // MUST be set in the config file if forward != 0
-  cpu_rv_receive = -1;       // MUST be set in the config file if forward != 0
-  cpu_rv_send = -1;         // MUST be set in the config file if reverse != 0
-  cpu_fw_receive = -1;        // MUST be set in the config file if reverse != 0
+  cpu_left_sender = -1;          // MUST be set in the config file if forward != 0
+  cpu_right_receiver = -1;       // MUST be set in the config file if forward != 0
+  cpu_right_sender = -1;         // MUST be set in the config file if reverse != 0
+  cpu_left_receiver = -1;        // MUST be set in the config file if reverse != 0
   memory_channels = 1;           // default value, this value will be set, if not specified in the config file
   fwd_var_sport = 3;             // default value: use pseudorandom change for the source port numbers in the forward direction
   fwd_var_dport = 3;             // default value: use pseudorandom change for the destination port numbers in the forward direction
@@ -132,19 +132,19 @@ int Throughput::readConfigFile(const char *filename) {
     return -1;
   }
   for ( line_no=1; fgets(line, LINELEN+1, f); line_no++ ) {
-    if ( (pos = findKey(line, "Tester-BG-Send-IPv6")) >= 0 ) {
+    if ( (pos = findKey(line, "IPv6-L-BG")) >= 0 ) {
       if ( inet_pton(AF_INET6, prune(line+pos), reinterpret_cast<void *>(&tester_bg_send_ipv6)) != 1 ) {
-        std::cerr << "Input Error: Bad 'Tester-BG-Send-IPv6' address." << std::endl;
+        std::cerr << "Input Error: Bad 'IPv6-L-BG' address." << std::endl;
         return -1;
       }
-    } else if ( (pos = findKey(line, "Tester-BG-Receive-IPv6")) >= 0 ) {
+    } else if ( (pos = findKey(line, "IPv6-R-BG")) >= 0 ) {
       if ( inet_pton(AF_INET6, prune(line+pos), reinterpret_cast<void *>(&tester_bg_rec_ipv6)) != 1 ) {
-        std::cerr << "Input Error: Bad 'Tester-BG-Receive-IPv6' address." << std::endl;
+        std::cerr << "Input Error: Bad 'IPv6-R-BG' address." << std::endl;
         return -1;
       }
-    } else if ( (pos = findKey(line, "Tester-FW-Receive-IPv4")) >= 0 ) {
+    } else if ( (pos = findKey(line, "IPv4-server")) >= 0 ) {
       if ( inet_pton(AF_INET, prune(line+pos), reinterpret_cast<void *>(&tester_fw_rec_ipv4)) != 1 ) {
-        std::cerr << "Input Error: Bad 'Tester-FW-Receive-IPv4' address." << std::endl;
+        std::cerr << "Input Error: Bad 'IPv4-server' address." << std::endl;
         return -1;
       }
     } else if ( (pos = findKey(line, "Tester-FW-Send-IPv6")) >= 0 ) {
@@ -152,28 +152,28 @@ int Throughput::readConfigFile(const char *filename) {
          std::cerr << "Input Error: Bad 'Tester-FW-Send-IPv6' address." << std::endl;
         return -1;
       } 
-    } else if ( (pos = findKey(line, "TESTER-FW-MAC")) >= 0 ) {
+    } else if ( (pos = findKey(line, "MAC-L-Tester")) >= 0 ) {
       m=tester_fw_mac;
       if ( sscanf(line+pos, "%hhx:%hhx:%hhx:%hhx:%hhx:%hhx", &m[0], &m[1], &m[2], &m[3], &m[4], &m[5]) < 6 ) {
-        std::cerr << "Input Error: Bad 'TESTER-FW-MAC' address." << std::endl;
+        std::cerr << "Input Error: Bad 'MAC-L-Tester' address." << std::endl;
         return -1;
       } 
-    } else if ( (pos = findKey(line, "TESTER-RV-MAC")) >= 0 ) {
+    } else if ( (pos = findKey(line, "MAC-R-Tester")) >= 0 ) {
       m=tester_rv_mac;
       if ( sscanf(line+pos, "%hhx:%hhx:%hhx:%hhx:%hhx:%hhx", &m[0], &m[1], &m[2], &m[3], &m[4], &m[5]) < 6 ) {
-        std::cerr << "Input Error: Bad 'TESTER-RV-MAC' address." << std::endl;
+        std::cerr << "Input Error: Bad 'MAC-R-Tester' address." << std::endl;
         return -1;
       }
-    } else if ( (pos = findKey(line, "DUT-FW-MAC")) >= 0 ) {
+    } else if ( (pos = findKey(line, "MAC-L-DUT")) >= 0 ) {
       m=dut_fw_mac;
       if ( sscanf(line+pos, "%hhx:%hhx:%hhx:%hhx:%hhx:%hhx", &m[0], &m[1], &m[2], &m[3], &m[4], &m[5]) < 6 ) {
-        std::cerr << "Input Error: Bad 'DUT-FW-MAC' address." << std::endl;
+        std::cerr << "Input Error: Bad 'MAC-L-DUT' address." << std::endl;
         return -1;
       }
-    } else if ( (pos = findKey(line, "DUT-RV-MAC")) >= 0 ) {
+    } else if ( (pos = findKey(line, "MAC-R-DUT")) >= 0 ) {
       m=dut_rv_mac;
       if ( sscanf(line+pos, "%hhx:%hhx:%hhx:%hhx:%hhx:%hhx", &m[0], &m[1], &m[2], &m[3], &m[4], &m[5]) < 6 ) {
-        std::cerr << "Input Error: Bad 'DUT-RV-MAC' address." << std::endl;
+        std::cerr << "Input Error: Bad 'MAC-R-DUT' address." << std::endl;
         return -1;
       }
     } else if ( (pos = findKey(line, "Forward")) >= 0 ) {
@@ -197,28 +197,28 @@ int Throughput::readConfigFile(const char *filename) {
         std::cerr << "Input Error: 'Promisc' must be either 0 for inactive or 1 for active." << std::endl;
         return -1;
       }
-    } else if ( (pos = findKey(line, "CPU-FW-Send")) >= 0 ) {
-      sscanf(line+pos, "%d", &cpu_fw_send);
-      if ( cpu_fw_send < 0 || cpu_fw_send >= RTE_MAX_LCORE ) {
-        std::cerr << "Input Error: 'CPU-FW-Send' must be >= 0 and < RTE_MAX_LCORE." << std::endl;
+    } else if ( (pos = findKey(line, "CPU-L-Send")) >= 0 ) {
+      sscanf(line+pos, "%d", &cpu_left_sender);
+      if ( cpu_left_sender < 0 || cpu_left_sender >= RTE_MAX_LCORE ) {
+        std::cerr << "Input Error: 'CPU-L-Send' must be >= 0 and < RTE_MAX_LCORE." << std::endl;
         return -1;
       }
-    } else if ( (pos = findKey(line, "CPU-RV-Receive")) >= 0 ) {
-      sscanf(line+pos, "%d", &cpu_rv_receive);
-      if ( cpu_rv_receive < 0 || cpu_rv_receive >= RTE_MAX_LCORE ) {
-        std::cerr << "Input Error: 'CPU-RV-Receive' must be >= 0 and < RTE_MAX_LCORE." << std::endl;
+    } else if ( (pos = findKey(line, "CPU-R-Recv")) >= 0 ) {
+      sscanf(line+pos, "%d", &cpu_right_receiver);
+      if ( cpu_right_receiver < 0 || cpu_right_receiver >= RTE_MAX_LCORE ) {
+        std::cerr << "Input Error: 'CPU-R-Recv' must be >= 0 and < RTE_MAX_LCORE." << std::endl;
         return -1;
       }
-    } else if ( (pos = findKey(line, "CPU-RV-Send")) >= 0 ) {
-      sscanf(line+pos, "%d", &cpu_rv_send);
-      if ( cpu_rv_send < 0 || cpu_rv_send >= RTE_MAX_LCORE ) {
-        std::cerr << "Input Error: 'CPU-RV-Send' must be >= 0 and < RTE_MAX_LCORE." << std::endl;
+    } else if ( (pos = findKey(line, "CPU-R-Send")) >= 0 ) {
+      sscanf(line+pos, "%d", &cpu_right_sender);
+      if ( cpu_right_sender < 0 || cpu_right_sender >= RTE_MAX_LCORE ) {
+        std::cerr << "Input Error: 'CPU-R-Send' must be >= 0 and < RTE_MAX_LCORE." << std::endl;
         return -1;
       }
-    } else if ( (pos = findKey(line, "CPU-FW-Receive")) >= 0 ) {
-      sscanf(line+pos, "%d", &cpu_fw_receive);
-      if ( cpu_fw_receive < 0 || cpu_fw_receive >= RTE_MAX_LCORE ) {
-        std::cerr << "Input Error: 'CPU-FW-Receive' must be >= 0 and < RTE_MAX_LCORE." << std::endl;
+    } else if ( (pos = findKey(line, "CPU-L-Recv")) >= 0 ) {
+      sscanf(line+pos, "%d", &cpu_left_receiver);
+      if ( cpu_left_receiver < 0 || cpu_left_receiver >= RTE_MAX_LCORE ) {
+        std::cerr << "Input Error: 'CPU-L-Recv' must be >= 0 and < RTE_MAX_LCORE." << std::endl;
         return -1;
       }
     } else if ( (pos = findKey(line, "MEM-Channels")) >= 0 ) {
@@ -227,108 +227,108 @@ int Throughput::readConfigFile(const char *filename) {
         std::cerr << "Input Error: 'MEM-Channels' must be > 0." << std::endl;
         return -1;
       }
-    } else if ( (pos = findKey(line, "FW-var-sport")) >= 0 ) {
+    } else if ( (pos = findKey(line, "Fwd-var-sport")) >= 0 ) {
       sscanf(line+pos, "%u", &fwd_var_sport);
       if ( fwd_var_sport > 3 ) {
-        std::cerr << "Input Error: 'FW-var-sport' must be 0, 1, 2, or 3." << std::endl;
+        std::cerr << "Input Error: 'Fwd-var-sport' must be 0, 1, 2, or 3." << std::endl;
         return -1;
       }
-    } else if ( (pos = findKey(line, "FW-var-dport")) >= 0 ) {
+    } else if ( (pos = findKey(line, "Fwd-var-dport")) >= 0 ) {
       sscanf(line+pos, "%u", &fwd_var_dport);
       if ( fwd_var_dport > 3 ) {
-        std::cerr << "Input Error: 'FW-var-dport' must be 0, 1, 2, or 3." << std::endl;
+        std::cerr << "Input Error: 'Fwd-var-dport' must be 0, 1, 2, or 3." << std::endl;
         return -1;
       }
-    } else if ( (pos = findKey(line, "RV-var-sport")) >= 0 ) {
+    } else if ( (pos = findKey(line, "Rev-var-sport")) >= 0 ) {
       sscanf(line+pos, "%u", &rev_var_sport);
       if ( rev_var_sport > 3 ) {
-        std::cerr << "Input Error: 'RV-var-sport' must be 0, 1, 2, or 3." << std::endl;
+        std::cerr << "Input Error: 'Rev-var-sport' must be 0, 1, 2, or 3." << std::endl;
         return -1;
       }
-    } else if ( (pos = findKey(line, "RV-var-dport")) >= 0 ) {
+    } else if ( (pos = findKey(line, "Rev-var-dport")) >= 0 ) {
       sscanf(line+pos, "%u", &rev_var_dport);
       if ( rev_var_dport > 3 ) {
-        std::cerr << "Input Error: 'RV-var-dport' must be 0, 1, 2, or 3." << std::endl;
+        std::cerr << "Input Error: 'Rev-var-dport' must be 0, 1, 2, or 3." << std::endl;
         return -1;
       }
-    } else if ( (pos = findKey(line, "FW-dport-min")) >= 0 ) {
+    } else if ( (pos = findKey(line, "FG-Fwd-dport-min")) >= 0 ) {
       if ( sscanf(line+pos, "%hu", &fwd_dport_min) < 1 ) {
-        std::cerr << "Input Error: Unable to read 'FW-dport-min'." << std::endl;
+        std::cerr << "Input Error: Unable to read 'FG-Fwd-dport-min'." << std::endl;
         return -1;
       }
-    } else if ( (pos = findKey(line, "FW-dport-max")) >= 0 ) {
+    } else if ( (pos = findKey(line, "FG-Fwd-dport-max")) >= 0 ) {
       if ( sscanf(line+pos, "%hu", &fwd_dport_max) < 1 ) {
-        std::cerr << "Input Error: Unable to read 'FW-dport-max'." << std::endl;
+        std::cerr << "Input Error: Unable to read 'FG-Fwd-port-max'." << std::endl;
         return -1;
       }
-    } else if ( (pos = findKey(line, "RV-sport-min")) >= 0 ) {
+    } else if ( (pos = findKey(line, "FG-Rev-sport-min")) >= 0 ) {
       if ( sscanf(line+pos, "%hu", &rev_sport_min) < 1 ) {
-        std::cerr << "Input Error: Unable to read 'RV-sport-min'." << std::endl;
+        std::cerr << "Input Error: Unable to read 'FG-Rev-sport-min'." << std::endl;
         return -1;
       }
-    } else if ( (pos = findKey(line, "RV-sport-max")) >= 0 ) {
+    } else if ( (pos = findKey(line, "FG-Rev-sport-max")) >= 0 ) {
       if ( sscanf(line+pos, "%hu", &rev_sport_max) < 1 ) {
-        std::cerr << "Input Error: Unable to read 'RV-sport-max'." << std::endl;
+        std::cerr << "Input Error: Unable to read 'FG-Rev-sport-max'." << std::endl;
         return -1;
       }
-    } else if ( (pos = findKey(line, "bg-FW-dport-min")) >= 0 ) {
+    } else if ( (pos = findKey(line, "BG-Fwd-dport-min")) >= 0 ) {
       if ( sscanf(line+pos, "%hu", &bg_fw_dport_min) < 1 ) {
-        std::cerr << "Input Error: Unable to read 'bg-FW-dport-min'." << std::endl;
+        std::cerr << "Input Error: Unable to read 'BG-Fwd-dport-min'." << std::endl;
         return -1;
       }
-    } else if ( (pos = findKey(line, "bg-FW-dport-max")) >= 0 ) {
+    } else if ( (pos = findKey(line, "BG-Fwd-dport-max")) >= 0 ) {
       if ( sscanf(line+pos, "%hu", &bg_fw_dport_max) < 1 ) {
-        std::cerr << "Input Error: Unable to read 'bg-FW-dport-max'." << std::endl;
+        std::cerr << "Input Error: Unable to read 'BG-Fwd-dport-max'." << std::endl;
         return -1;
       }
-    } else if ( (pos = findKey(line, "bg-FW-sport-min")) >= 0 ) {
+    } else if ( (pos = findKey(line, "BG-Fwd-sport-min")) >= 0 ) {
       if ( sscanf(line+pos, "%hu", &bg_fw_sport_min) < 1 ) {
-        std::cerr << "Input Error: Unable to read 'bg-RV-sport-min'." << std::endl;
+        std::cerr << "Input Error: Unable to read 'BG-Fwd-sport-min'." << std::endl;
         return -1;
       }
-    } else if ( (pos = findKey(line, "bg-FW-sport-max")) >= 0 ) {
+    } else if ( (pos = findKey(line, "BG-Fwd-sport-max")) >= 0 ) {
       if ( sscanf(line+pos, "%hu", &bg_fw_sport_max) < 1 ) {
-        std::cerr << "Input Error: Unable to read 'bg-RV-sport-max'." << std::endl;
+        std::cerr << "Input Error: Unable to read 'BG-Fwd-sport-max'." << std::endl;
         return -1;
       }
-    } else if ( (pos = findKey(line, "bg-RV-dport-min")) >= 0 ) {
+    } else if ( (pos = findKey(line, "BG-Rev-dport-min")) >= 0 ) {
       if ( sscanf(line+pos, "%hu", &bg_rv_dport_min) < 1 ) {
-        std::cerr << "Input Error: Unable to read 'bg-RV-sport-max'." << std::endl;
+        std::cerr << "Input Error: Unable to read 'BG-Rev-sport-max'." << std::endl;
         return -1;
       }
-    } else if ( (pos = findKey(line, "bg-RV-dport-max")) >= 0 ) {
+    } else if ( (pos = findKey(line, "BG-Rev-dport-max")) >= 0 ) {
       if ( sscanf(line+pos, "%hu", &bg_rv_dport_max) < 1 ) {
-        std::cerr << "Input Error: Unable to read 'bg-RV-sport-max'." << std::endl;
+        std::cerr << "Input Error: Unable to read 'BG-Rev-sport-max'." << std::endl;
         return -1;
       }
-    } else if ( (pos = findKey(line, "bg-RV-sport-min")) >= 0 ) {
+    } else if ( (pos = findKey(line, "BG-Rev-sport-min")) >= 0 ) {
       if ( sscanf(line+pos, "%hu", &bg_rv_sport_min) < 1 ) {
-        std::cerr << "Input Error: Unable to read 'bg-RV-sport-max'." << std::endl;
+        std::cerr << "Input Error: Unable to read 'BG-Rev-sport-max'." << std::endl;
         return -1;
       }
-    } else if ( (pos = findKey(line, "bg-RV-sport-max")) >= 0 ) {
+    } else if ( (pos = findKey(line, "BG-Rev-sport-max")) >= 0 ) {
       if ( sscanf(line+pos, "%hu", &bg_rv_sport_max) < 1 ) {
-        std::cerr << "Input Error: Unable to read 'bg-RV-sport-max'." << std::endl;
+        std::cerr << "Input Error: Unable to read 'BG-Rev-sport-max'." << std::endl;
         return -1;
       }
     
-    } else if ((pos = findKey(line, "NUM-OF-lwB4s")) >= 0){
+    } else if ((pos = findKey(line, "Num-lwB4s")) >= 0){
       sscanf(line + pos, "%u", &number_of_lwB4s);
       if (number_of_lwB4s < 1 || number_of_lwB4s > 1000000)
       {
-        std::cerr << "Input Error: 'NUM-OF-lwB4s' must be >= 1 and <= 1000000." << std::endl;
+        std::cerr << "Input Error: 'Num-lwB4s' must be >= 1 and <= 1000000." << std::endl;
         return -1;
       }
-    } else if ( (pos = findKey(line, "DUT-Tunnel-IPv6")) >= 0 ) {
+    } else if ( (pos = findKey(line, "IPv6-tunnel")) >= 0 ) {
       if ( inet_pton(AF_INET6, prune(line+pos), reinterpret_cast<void *>(&dut_ipv6_tunnel)) != 1 ) {
-         std::cerr << "Input Error: Bad 'DUT-Tunnel-IPv6' address." << std::endl;
+         std::cerr << "Input Error: Bad 'IPv6-tunnel' address." << std::endl;
         return -1;
       }
-    } else if ( (pos = findKey(line, "SYSTEM-PORTS")) >= 0 ) {
+    } else if ( (pos = findKey(line, "System-ports")) >= 0 ) {
       sscanf(line+pos, "%d", &system_ports);
       if (!(system_ports == 0 || system_ports == 1))
       {
-        std::cerr << "Input Error: 'SYSTEM-PORTS' must be either 1 for allowing the use of system ports or 0 for not allowing it." << std::endl;
+        std::cerr << "Input Error: 'System-ports' must be either 1 for allowing the use of system ports or 0 for not allowing it." << std::endl;
         return -1;
       }
     } else if ( nonComment(line) ) { // It may be too strict!
@@ -347,22 +347,22 @@ int Throughput::readConfigFile(const char *filename) {
   
   // check if the necessary lcores were specified
   if ( forward ) {
-    if ( cpu_fw_send < 0 ) {
-      std::cerr << "Input Error: No 'CPU-FW-Send' was specified." << std::endl;
+    if ( cpu_left_sender < 0 ) {
+      std::cerr << "Input Error: No 'CPU-L-Send' was specified." << std::endl;
       return -1;
     }
-    if ( cpu_rv_receive < 0 ) {
-      std::cerr << "Input Error: No 'CPU-RV-Receive' was specified." << std::endl;
+    if ( cpu_right_receiver < 0 ) {
+      std::cerr << "Input Error: No 'CPU-R-Recv' was specified." << std::endl;
       return -1;
     }
   }
   if ( reverse ) {
-    if ( cpu_rv_send < 0 ) {
-      std::cerr << "Input Error: No 'CPU-RV-Send' was specified." << std::endl;
+    if ( cpu_right_sender < 0 ) {
+      std::cerr << "Input Error: No 'CPU-R-Send' was specified." << std::endl;
       return -1;
     }
-    if ( cpu_fw_receive < 0 ) {
-      std::cerr << "Input Error: No 'CPU-FW-Receive' was specified." << std::endl;
+    if ( cpu_left_receiver < 0 ) {
+      std::cerr << "Input Error: No 'CPU-L-Recv' was specified." << std::endl;
       return -1;
     }
   }
@@ -502,12 +502,12 @@ int Throughput::init(const char *argv0, uint16_t leftport, uint16_t rightport)
   if (forward && reverse)
   {
     // both directions are active
-    snprintf(coresList, 101, "0,%d,%d,%d,%d", cpu_fw_send, cpu_fw_receive,  cpu_rv_send, cpu_rv_receive);
+    snprintf(coresList, 101, "0,%d,%d,%d,%d", cpu_left_sender, cpu_right_receiver, cpu_right_sender, cpu_left_receiver);
   }
   else if (forward)
-    snprintf(coresList, 101, "0,%d,%d", cpu_fw_send, cpu_fw_receive); // only forward (left to right) is active
+    snprintf(coresList, 101, "0,%d,%d", cpu_left_sender, cpu_right_receiver); // only forward (left to right) is active
   else
-    snprintf(coresList, 101, "0,%d,%d",  cpu_rv_send, cpu_rv_receive); // only reverse (right to left) is active
+    snprintf(coresList, 101, "0,%d,%d", cpu_right_sender, cpu_left_receiver); // only reverse (right to left) is active
 
   rte_argv[2] = coresList;
   std::cout << coresList << std::endl;
@@ -562,7 +562,7 @@ int Throughput::init(const char *argv0, uint16_t leftport, uint16_t rightport)
   int receiver_pool_size = PORT_RX_QUEUE_SIZE + 2 * MAX_PKT_BURST + 100; // While one of them is processed, the other one is being filled.
 
   pkt_pool_left_sender = rte_pktmbuf_pool_create("pp_left_sender", left_sender_pool_size, PKTPOOL_CACHE, 0,
-                                                 RTE_MBUF_DEFAULT_BUF_SIZE, rte_lcore_to_socket_id(cpu_fw_send));
+                                                 RTE_MBUF_DEFAULT_BUF_SIZE, rte_lcore_to_socket_id(cpu_left_sender));
 
   if (!pkt_pool_left_sender)
   {
@@ -571,7 +571,7 @@ int Throughput::init(const char *argv0, uint16_t leftport, uint16_t rightport)
   }
 
   pkt_pool_right_receiver = rte_pktmbuf_pool_create("pp_right_receiver", receiver_pool_size, PKTPOOL_CACHE, 0,
-                                                    RTE_MBUF_DEFAULT_BUF_SIZE, rte_lcore_to_socket_id(cpu_rv_receive));
+                                                    RTE_MBUF_DEFAULT_BUF_SIZE, rte_lcore_to_socket_id(cpu_right_receiver));
   if (!pkt_pool_right_receiver)
   {
     std::cerr << "Error: Cannot create packet pool for Right Receiver, Tester exits." << std::endl;
@@ -579,14 +579,14 @@ int Throughput::init(const char *argv0, uint16_t leftport, uint16_t rightport)
   }
 
   pkt_pool_right_sender = rte_pktmbuf_pool_create("pp_right_sender", right_sender_pool_size, PKTPOOL_CACHE, 0,
-                                                  RTE_MBUF_DEFAULT_BUF_SIZE, rte_lcore_to_socket_id( cpu_rv_send));
+                                                  RTE_MBUF_DEFAULT_BUF_SIZE, rte_lcore_to_socket_id(cpu_right_sender));
   if (!pkt_pool_right_sender)
   {
     std::cerr << "Error: Cannot create packet pool for Right Sender, Tester exits." << std::endl;
     return -1;
   }
   pkt_pool_left_receiver = rte_pktmbuf_pool_create("pp_left_receiver", receiver_pool_size, PKTPOOL_CACHE, 0,
-                                                   RTE_MBUF_DEFAULT_BUF_SIZE, rte_lcore_to_socket_id(cpu_fw_receive));
+                                                   RTE_MBUF_DEFAULT_BUF_SIZE, rte_lcore_to_socket_id(cpu_left_receiver));
   if (!pkt_pool_left_receiver)
   {
     std::cerr << "Error: Cannot create packet pool for Left Receiver, Tester exits." << std::endl;
@@ -670,13 +670,13 @@ int Throughput::init(const char *argv0, uint16_t leftport, uint16_t rightport)
     {
       if (forward)
       {
-        numaCheck(leftport, "Left", cpu_fw_send, "Left Sender");
-        numaCheck(rightport, "Right", cpu_fw_receive, "Right Receiver");
+        numaCheck(leftport, "Left", cpu_left_sender, "Left Sender");
+        numaCheck(rightport, "Right", cpu_right_receiver, "Right Receiver");
       }
       if (reverse)
       {
-        numaCheck(rightport, "Right",  cpu_rv_send, "Right Sender");
-        numaCheck(leftport, "Left", cpu_rv_receive, "Left Receiver");
+        numaCheck(rightport, "Right", cpu_right_sender, "Right Sender");
+        numaCheck(leftport, "Left", cpu_left_receiver, "Left Receiver");
       }
     }
   }
@@ -684,13 +684,13 @@ int Throughput::init(const char *argv0, uint16_t leftport, uint16_t rightport)
   // Some sanity checks: TSCs of the used cores are synchronized or not...
   if (forward)
   {
-    check_tsc(cpu_fw_send, "Left Sender");
-    check_tsc(cpu_fw_receive, "Right Receiver");
+    check_tsc(cpu_left_sender, "Left Sender");
+    check_tsc(cpu_right_receiver, "Right Receiver");
   }
   if (reverse)
   {
-    check_tsc( cpu_rv_send, "Right Sender");
-    check_tsc(cpu_rv_receive, "Left Receiver");
+    check_tsc(cpu_right_sender, "Right Sender");
+    check_tsc(cpu_left_receiver, "Left Receiver");
   }
 
   // prepare further values for testing
@@ -979,14 +979,14 @@ void Throughput::measure(uint16_t leftport, uint16_t rightport) {
                           bg_fw_dport_min, bg_fw_dport_max, bg_rv_sport_min, bg_rv_sport_max, bg_rv_dport_min, bg_rv_dport_max);
 
     // start left sender
-    if (rte_eal_remote_launch(send, &spars, cpu_fw_send))
+    if (rte_eal_remote_launch(send, &spars, cpu_left_sender))
       std::cout << "Error: could not start Left Sender." << std::endl;
 
     // set parameters for the right receiver
     rpars = receiverParameters(finish_receiving, rightport, "forward");
 
     // start right receiver
-    if (rte_eal_remote_launch(receive, &rpars, cpu_fw_receive))
+    if (rte_eal_remote_launch(receive, &rpars, cpu_right_receiver))
       std::cout << "Error: could not start Right Receiver." << std::endl;
   }
 
@@ -1003,14 +1003,14 @@ void Throughput::measure(uint16_t leftport, uint16_t rightport) {
                           bg_fw_dport_min, bg_fw_dport_max, bg_rv_sport_min, bg_rv_sport_max, bg_rv_dport_min, bg_rv_dport_max);
 
     // start right sender
-    if (rte_eal_remote_launch(send, &spars2, cpu_rv_send))
+    if (rte_eal_remote_launch(send, &spars2, cpu_right_sender))
       std::cout << "Error: could not start Right Sender." << std::endl;
 
     // set parameters for the left receiver
     rpars2 = receiverParameters(finish_receiving, leftport, "reverse");
 
     // start left receiver
-    if (rte_eal_remote_launch(receive, &rpars2, cpu_rv_receive))
+    if (rte_eal_remote_launch(receive, &rpars2, cpu_left_receiver))
       std::cout << "Error: could not start Left Receiver." << std::endl; 
   }
 
@@ -1019,13 +1019,13 @@ void Throughput::measure(uint16_t leftport, uint16_t rightport) {
   // wait until active senders and receivers finish
   if (forward)
   {
-    rte_eal_wait_lcore(cpu_fw_send);
-    rte_eal_wait_lcore(cpu_fw_receive);
+    rte_eal_wait_lcore(cpu_left_sender);
+    rte_eal_wait_lcore(cpu_right_receiver);
   }
   if (reverse)
   {
-    rte_eal_wait_lcore(cpu_rv_send);
-    rte_eal_wait_lcore(cpu_rv_receive);
+    rte_eal_wait_lcore(cpu_right_sender);
+    rte_eal_wait_lcore(cpu_left_receiver);
   }
 
   rte_free(lwB4_array); // release the CEs data memory

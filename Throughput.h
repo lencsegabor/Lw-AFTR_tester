@@ -56,11 +56,10 @@ public:
     uint16_t bg_rv_dport_min; // minumum value for background's destination port in the reverse direction
     uint16_t bg_rv_dport_max; // maximum value for background's destination port in the reverse direction
 
-
-    int cpu_fw_send;    // lcore for forward direction Sender
-    int cpu_fw_receive;  // lcore for forward direction Receiver
-    int cpu_rv_send;   // lcore for reverse direction Sender
-    int cpu_rv_receive; // lcore for reverse direction Receiver
+  int cpu_left_sender; 		// lcore for left side Sender
+  int cpu_right_receiver; 	// lcore for right side Receiver
+  int cpu_right_sender; 	// lcore for right side Sender
+  int cpu_left_receiver; 	// lcore for left side Receiver
 
     uint8_t memory_channels; // Number of memory channnels (for the EAL init.)
     int forward, reverse;    // directions are active if set
