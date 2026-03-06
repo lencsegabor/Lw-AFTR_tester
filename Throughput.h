@@ -23,47 +23,34 @@ class Throughput
 {
 public:
   // parameters from the configuration file
-    uint32_t tester_fw_rec_ipv4;        // Tester's right interface IPv4 address
-    struct in6_addr tester_fw_send_ipv6;
+  uint32_t ipv4_server;         // Tester's right interface IPv4 address
+  struct in6_addr ipv6_left_bg; // Tester's left interface IPv6 address (used for sending background traffic)
+  struct in6_addr ipv6_right_bg;// Tester's right interface IPv6 address (used for sending background traffic)
+  
 
-    struct in6_addr tester_bg_send_ipv6; // Tester's right interface IPv6 address (used for sending background traffic)
-    struct in6_addr tester_bg_rec_ipv6;
-    
+  uint8_t mac_left_tester[6];  // Tester's left interface MAC address
+  uint8_t mac_right_tester[6]; // Tester's right interface MAC address
+  uint8_t mac_left_dut[6];     // DUT's left interface MAC address
+  uint8_t mac_right_dut[6];    // DUT's right interface MAC address
 
-    uint8_t tester_fw_mac[6];  // Tester's left interface MAC address, forward direction, from teser to DUT
-    uint8_t tester_rv_mac[6]; // Tester's right interface MAC address, reverse direction,
-    uint8_t dut_fw_mac[6];     // DUT's left interface MAC address, forward direction,
-    uint8_t dut_rv_mac[6];    // DUT's right interface MAC address, reverse direction,
+  uint16_t fwd_dport_min; // minumum value for fg. and bg. destination port in the forward direction
+  uint16_t fwd_dport_max; // maximum value for fg. and bg. destination port in the forward direction
+  uint16_t rev_sport_min; // minumum value for fg. and bg. source port in the reverse direction
+  uint16_t rev_sport_max; // maximum value for fg. and bg. source port in the reverse direction
 
-  // encoding: 1: increase, 2: decrease, 3: pseudorandom
-    unsigned fwd_var_sport; // control value for variable source port numbers in the forward direction
-    unsigned fwd_var_dport; // control value for variable destination port numbers in the forward direction
-    unsigned rev_var_sport; // control value for variable source port numbers in the reverse direction
-    unsigned rev_var_dport; // control value for variable destination port numbers in the reverse direction
-
-    uint16_t fwd_dport_min; // minumum value for foreground's destination port in the forward direction
-    uint16_t fwd_dport_max; // maximum value for foreground's destination port in the forward direction
-    uint16_t rev_sport_min; // minumum value for foreground's source port in the reverse direction
-    uint16_t rev_sport_max; // maximum value for foreground's source port in the reverse direction
-
-    uint16_t bg_fw_sport_min; // minumum value for background's source port in the forward direction
-    uint16_t bg_fw_sport_max; // maximum value for background's source port in the forward direction
-    uint16_t bg_fw_dport_min; // minumum value for background's destination port in the forward direction
-    uint16_t bg_fw_dport_max; // maximum value for background's destination port in the forward direction
-
-    uint16_t bg_rv_sport_min; // minumum value for background's source port in the reverse direction
-    uint16_t bg_rv_sport_max; // maximum value for background's source port in the reverse direction
-    uint16_t bg_rv_dport_min; // minumum value for background's destination port in the reverse direction
-    uint16_t bg_rv_dport_max; // maximum value for background's destination port in the reverse direction
+  uint16_t fwd_sport_min; // minumum value for bg. destination port in the forward direction
+  uint16_t fwd_sport_max; // maximum value for bg. destination port in the forward direction
+  uint16_t rev_dport_min; // minumum value for bg. source port in the reverse direction
+  uint16_t rev_dport_max; // maximum value for bg. source port in the reverse direction
 
   int cpu_left_sender; 		// lcore for left side Sender
   int cpu_right_receiver; 	// lcore for right side Receiver
   int cpu_right_sender; 	// lcore for right side Sender
   int cpu_left_receiver; 	// lcore for left side Receiver
 
-    uint8_t memory_channels; // Number of memory channnels (for the EAL init.)
-    int forward, reverse;    // directions are active if set
-    int promisc;             // promiscuous mode is active if set
+  uint8_t memory_channels; // Number of memory channnels (for the EAL init.)
+  int forward, reverse;    // directions are active if set
+  int promisc;             // promiscuous mode is active if set
 
   // positional parameters from command line
   uint16_t ipv6_frame_size; // size of the frames carrying IPv6 datagrams (including the 4 bytes of the FCS at the end)
@@ -87,7 +74,7 @@ public:
   uint16_t num_of_port_sets;      // The number of port sets that can be obtained according to the psid_length
   uint16_t num_of_ports;          // The number of ports in each port set
   uint32_t number_of_lwB4s;             // Number of simulated lwB4s
-  struct in6_addr dut_ipv6_tunnel; // The tunnel endpoint
+  struct in6_addr ipv6_tunnel; // The tunnel endpoint
   lwB4_data *lwB4_array;
   std::vector<lwB4_data> tmp_lwb4data; // for reading the lwB4 data file
   int system_ports;                     //1 if lwB4s can use system ports, 0 otherwise
@@ -111,7 +98,8 @@ public:
 };
 
 // send test frame
-int send(void *par);
+int send6(void *par);
+int send4(void *par);
 
 // receive and count test frames
 int receive(void *par);
@@ -152,19 +140,25 @@ public:
   uint32_t number_of_lwB4s;
   lwB4_data *lwB4_array;
 
-  uint32_t *tester_fw_rec_ipv4;
-  struct in6_addr *dut_ipv6_tunnel; //
-  struct in6_addr *tester_bg_send_ipv6; 
-  struct in6_addr *tester_bg_rec_ipv6;
+  uint32_t *ipv4_server;
+  struct in6_addr *ipv6_tunnel; //
+  struct in6_addr *ipv6_left_bg; 
+  struct in6_addr *ipv6_right_bg;
   
-  uint16_t fw_dport_min; 
-  uint16_t fw_dport_max;
+  uint16_t fwd_sport_min; 
+  uint16_t fwd_sport_max;
+  uint16_t fwd_dport_min; 
+  uint16_t fwd_dport_max;
+  uint16_t rev_sport_min; 
+  uint16_t rev_sport_max;
+  uint16_t rev_dport_min; 
+  uint16_t rev_dport_max;
 
   senderCommonParameters(uint16_t ipv6_frame_size_, uint16_t ipv4_frame_size_, uint32_t frame_rate_, uint16_t test_duration_,
                         uint32_t n_, uint32_t m_, uint64_t hz_, uint64_t start_tsc_, uint32_t number_of_lwB4s_, lwB4_data *lwB4_array_,
-                        struct in6_addr *dut_ipv6_tunnel_, uint32_t *tester_fw_rec_ipv4_, in6_addr *tester_bg_send_ipv6_, struct in6_addr *tester_bg_rec_ipv6_,
-                        uint16_t fw_dport_min_, uint16_t fw_dport_max_
-                        );
+                        struct in6_addr *ipv6_tunnel_, uint32_t *ipv4_server_, in6_addr *ipv6_left_bg_, struct in6_addr *ipv6_right_bg_,
+                        uint16_t fwd_sport_min_, uint16_t fwd_sport_max_, uint16_t fwd_dport_min_, uint16_t fwd_dport_max_,
+                        uint16_t rev_sport_min_, uint16_t rev_sport_max_, uint16_t rev_dport_min_, uint16_t rev_dport_max_);
   senderCommonParameters();
 };
 
@@ -177,23 +171,11 @@ public:
   const char *direction; // test direction (forward or reverse)
   struct ether_addr *dst_mac, *src_mac; // destination and source mac addresses
   
-  uint16_t bg_fw_sport_min; 
-  uint16_t bg_fw_sport_max;
-  uint16_t bg_fw_dport_min; 
-  uint16_t bg_fw_dport_max;
-  
-  uint16_t bg_rv_sport_min; 
-  uint16_t bg_rv_sport_max;
-  uint16_t bg_rv_dport_min; 
-  uint16_t bg_rv_dport_max; 
-
   //unsigned var_sport, var_dport; // how source and destination port numbers vary? 1:increase, 2:decrease, or 3:pseudorandomly change
   //suint16_t preconfigured_port_min, preconfigured_port_max; // The preconfigured range of ports (i.e., destination in case of forward and source in case of reverse)
   
   senderParameters(class senderCommonParameters *cp_, rte_mempool *pkt_pool_, uint8_t eth_id_, const char *direction_,
-                   struct ether_addr *dst_mac_, struct ether_addr *src_mac_, uint16_t bg_fw_sport_min_, uint16_t bg_fw_sport_max_, uint16_t bg_fw_dport_min_,
-                   uint16_t bg_fw_dport_max_, uint16_t bg_rv_sport_min, uint16_t bg_rv_sport_max, uint16_t bg_rv_dport_min, uint16_t bg_rv_dport_max
-                   );
+                   struct ether_addr *dst_mac_, struct ether_addr *src_mac_);
   
   senderParameters();
 };
