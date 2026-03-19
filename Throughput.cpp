@@ -1200,13 +1200,11 @@ int send6(void *par)
 
       std::uniform_int_distribution<int> uni_dis_sport(lwB4_array[current_lwB4].min_port, lwB4_array[current_lwB4].max_port);
       sp = uni_dis_sport(gen_sport);
-      *udp_sport = htons(sp); // set the source port 
-      chksum += *udp_sport; // and add it to the UDP checksum
+      chksum += *udp_sport = htons(sp); // set the source port and add it to the UDP checksum
 
       std::uniform_int_distribution<int> uni_dis_dport(fwd_dport_min,fwd_dport_max);
       dp = uni_dis_dport(gen_dport);
-      *udp_dport = htons(dp); // set the destinaton port 
-      chksum += *udp_dport; // and add it to the UDP checksum
+      chksum += *udp_dport = htons(dp); // set the destinaton port and add it to the UDP checksum
     }
     else
     {
@@ -1220,13 +1218,11 @@ int send6(void *par)
   
       std::uniform_int_distribution<int> uni_dis_sport(fwd_sport_min,fwd_sport_max);
       sp = uni_dis_sport(gen_sport);
-      *udp_sport = htons(sp); // set the source port 
-      chksum += *udp_sport; // and add it to the UDP checksum
+      chksum += *udp_sport = htons(sp); // set the source port and add it to the UDP checksum
    
       std::uniform_int_distribution<int> uni_dis_dport(fwd_dport_min,fwd_dport_max);
       dp = uni_dis_dport(gen_dport);
-      *udp_dport = htons(dp); // set the destination port 
-      chksum += *udp_dport; // and add it to the UDP checksum
+      chksum += *udp_dport = htons(dp); // set the destination port and add it to the UDP checksum
     }
 
     //finalize the UDP checksum
@@ -1413,13 +1409,11 @@ int send4(void *par)
 
       std::uniform_int_distribution<int> uni_dis_dport(lwB4_array[current_lwB4].min_port, lwB4_array[current_lwB4].max_port);
       dp = uni_dis_dport(gen_dport);
-      *udp_dport = htons(dp); // set the destination port 
-      chksum += *udp_dport; // and add it to the UDP checksum
+      chksum += *udp_dport = htons(dp); // set the destination port and add it to the UDP checksum
 
       std::uniform_int_distribution<int> uni_dis_sport(rev_sport_min,rev_sport_max);
       sp = uni_dis_sport(gen_sport);
-      *udp_sport = htons(sp); // set the source port 
-      chksum += *udp_sport; // and add it to the UDP checksum
+      chksum += *udp_sport = htons(sp); // set the source port and add it to the UDP checksum
     }
     else
     {
@@ -1432,13 +1426,11 @@ int send4(void *par)
   
       std::uniform_int_distribution<int> uni_dis_sport(rev_sport_min,rev_sport_max);
       sp = uni_dis_sport(gen_sport);
-      *udp_sport = htons(sp); // set the source port 
-      chksum += *udp_sport; // and add it to the UDP checksum
+      chksum += *udp_sport = htons(sp); // set the source port and add it to the UDP checksum
    
       std::uniform_int_distribution<int> uni_dis_dport(rev_dport_min,rev_dport_max);
       dp = uni_dis_dport(gen_dport);
-      *udp_dport = htons(dp); // set the destination port 
-      chksum += *udp_dport; // and add it to the UDP checksum
+      chksum += *udp_dport = htons(dp); // set the destination port and add it to the UDP checksum
     }
 
     //finalize the UDP checksum
