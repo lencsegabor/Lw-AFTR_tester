@@ -1133,7 +1133,7 @@ int send6(void *par)
   uint16_t tunneled_frame_size =  ipv6_frame_size + 20;
   
   // creating buffers of template test frames
- for (i = 0; i < N; i++)
+  for (i = 0; i < N; i++)
   {
     // create a foreground Test Frame 
     fg_pkt_mbuf[i] = mkTestIpv4inIpv6Tun(tunneled_frame_size,pkt_pool,"Forward",dst_mac,src_mac,&zero_ipv6,ipv6_tunnel,&zero_ipv4,ipv4_server);
@@ -1203,7 +1203,7 @@ int send6(void *par)
       *udp_sport = htons(sp); // set the source port 
       chksum += *udp_sport; // and add it to the UDP checksum
 
-      std::uniform_int_distribution<int> uni_dis_dport(fwd_dport_min, fwd_dport_max);
+      std::uniform_int_distribution<int> uni_dis_dport(fwd_dport_min,fwd_dport_max);
       dp = uni_dis_dport(gen_dport);
       *udp_dport = htons(dp); // set the destinaton port 
       chksum += *udp_dport; // and add it to the UDP checksum
@@ -1218,16 +1218,15 @@ int send6(void *par)
       udp_chksum = bg_udp_chksum[i];
       pkt_mbuf = bg_pkt_mbuf[i];
   
-      std::uniform_int_distribution<int> uni_dis_sport(fwd_sport_min, fwd_sport_max);
+      std::uniform_int_distribution<int> uni_dis_sport(fwd_sport_min,fwd_sport_max);
       sp = uni_dis_sport(gen_sport);
       *udp_sport = htons(sp); // set the source port 
       chksum += *udp_sport; // and add it to the UDP checksum
    
-      std::uniform_int_distribution<int> uni_dis_dport(fwd_dport_min, fwd_dport_max);
+      std::uniform_int_distribution<int> uni_dis_dport(fwd_dport_min,fwd_dport_max);
       dp = uni_dis_dport(gen_dport);
       *udp_dport = htons(dp); // set the destination port 
       chksum += *udp_dport; // and add it to the UDP checksum
-    
     }
 
     //finalize the UDP checksum

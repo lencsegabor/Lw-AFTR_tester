@@ -44,8 +44,10 @@ public:
 
     senderCommonParametersLatency(uint16_t ipv6_frame_size_, uint16_t ipv4_frame_size_, uint32_t frame_rate_, uint16_t test_duration_,
         uint32_t n_, uint32_t m_, uint64_t hz_, uint64_t start_tsc_, uint32_t number_of_lwB4s_, lwB4_data *lwB4_array_,
-        struct in6_addr *dut_ipv6_tunnel_, uint32_t *tester_fw_rec_ipv4_, in6_addr *tester_bg_send_ipv6_, struct in6_addr *tester_bg_rec_ipv6_,
-        uint16_t fw_dport_min_, uint16_t fw_dport_max_, uint16_t first_tagged_delay_, uint16_t num_of_tagged_
+        struct in6_addr *ipv6_tunnel_, uint32_t *ipv4_server_, in6_addr *ipv6_left_bg_, struct in6_addr *ipv6_right_bg_,
+                        uint16_t fwd_sport_min_, uint16_t fwd_sport_max_, uint16_t fwd_dport_min_, uint16_t fwd_dport_max_,
+                        uint16_t rev_sport_min_, uint16_t rev_sport_max_, uint16_t rev_dport_min_, uint16_t rev_dport_max_,
+        uint16_t first_tagged_delay_, uint16_t num_of_tagged_
         );
     senderCommonParametersLatency();
 };
@@ -56,8 +58,7 @@ public:
     uint64_t *send_ts; // pointer to the send timestamps
 
     senderParametersLatency(class senderCommonParameters *cp_, rte_mempool *pkt_pool_, uint8_t eth_id_, const char *direction_,
-    struct ether_addr *dst_mac_, struct ether_addr *src_mac_, uint16_t bg_fw_sport_min_, uint16_t bg_fw_sport_max_, uint16_t bg_fw_dport_min_,
-    uint16_t bg_fw_dport_max_, uint16_t bg_rv_sport_min, uint16_t bg_rv_sport_max, uint16_t bg_rv_dport_min, uint16_t bg_rv_dport_max, uint64_t *send_ts_
+    struct ether_addr *dst_mac_, struct ether_addr *src_mac_,  uint64_t *send_ts_
     );
     senderParametersLatency(); 
 };

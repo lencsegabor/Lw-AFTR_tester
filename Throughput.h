@@ -26,7 +26,6 @@ public:
   uint32_t ipv4_server;         // Tester's right interface IPv4 address
   struct in6_addr ipv6_left_bg; // Tester's left interface IPv6 address (used for sending background traffic)
   struct in6_addr ipv6_right_bg;// Tester's right interface IPv6 address (used for sending background traffic)
-  
 
   uint8_t mac_left_tester[6];  // Tester's left interface MAC address
   uint8_t mac_right_tester[6]; // Tester's right interface MAC address
