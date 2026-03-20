@@ -52,6 +52,7 @@ int send6Latency(void *par)
   uint64_t hz = cp->hz;
   uint64_t start_tsc = cp->start_tsc;
   uint32_t num_of_lwB4s = cp->number_of_lwB4s;
+  unsigned select_lwB4 = cp->select_lwB4;
   lwB4_data *lwB4_array = cp->lwB4_array;
   uint16_t fwd_sport_min = cp->fwd_sport_min;
   uint16_t fwd_sport_max = cp->fwd_sport_max;
@@ -103,7 +104,7 @@ int send6Latency(void *par)
     return -1;
   }
   
-  // check whether the CE array is built or not
+  // check whether the lwB4 array is built or not
   if(!lwB4_array){
     std::cerr << "No lwB4 array can be accessed by the sender" << std::endl;
     return -1;
@@ -212,19 +213,35 @@ int send6Latency(void *par)
     }
   }  
   
-  i = 0; // increase maunally after each sending
-  current_lwB4 = 0; // increase maunally after each sending
+  // prepare random number infrastructure
+  thread_local std::random_device rd;                   // Will be used to obtain a seed for the random number engines
+  thread_local std::mt19937_64 gen_sport(rd());         // Standard 64-bit mersenne_twister_engine seeded with rd()
+  thread_local std::mt19937_64 gen_dport(rd());         // Standard 64-bit mersenne_twister_engine seeded with rd()
+  thread_local std::mt19937_64 gen_lwB4_index(rd());    // Standard 64-bit mersenne_twister_engine seeded with rd()
+
+  std::uniform_int_distribution<int> uni_dis_lwB4_index(0,num_of_lwB4s-1);
+
+  switch ( select_lwB4 )
+  {
+  case 0: // always use lwB4_array[0]
+    current_lwB4 = 0;
+    break;
+  case 1: // use the elements of the 'lwB4_array' in increasing order
+    current_lwB4 = 0; // increase maunally after each sending
+    break;
+  case 2: // use the elements of the 'lwB4_array' in decreasing order
+    current_lwB4 = num_of_lwB4s-1; // decrease maunally after each sending
+    break;
+  case 3: // select an element from the 'lwB4_array' in a pseudorandom way
+    current_lwB4 = uni_dis_lwB4_index(gen_lwB4_index);
+    break;
+  }
 
   int latency_timestamp_no = 0;                           // counter for the latency frames from 0 to num_of_tagged-1
   uint64_t send_next_latency_frame = start_latency_frame; // at what frame count to send the next latency frame
 
-  // prepare random number infrastructure
-  thread_local std::random_device rd_sport;           // Will be used to obtain a seed for the random number engines
-  thread_local std::mt19937_64 gen_sport(rd_sport()); // Standard 64-bit mersenne_twister_engine seeded with rd()
-  thread_local std::random_device rd_dport;           // Will be used to obtain a seed for the random number engines
-  thread_local std::mt19937_64 gen_dport(rd_dport()); // Standard 64-bit mersenne_twister_engine seeded with rd()
-
   // naive sender version: it is simple and fast
+  i = 0; // increase maunally after each sending
   for (sent_frames = 0; sent_frames < frames_to_send; sent_frames++)
   { // Main cycle for the number of frames to send
     bool IsUDPoverIPv4;         // It is true for foreground frames, and false for background frames.
@@ -362,7 +379,22 @@ int send6Latency(void *par)
       i = (i + 1) % N;
     }
 
-    current_lwB4 = (current_lwB4 + 1) % num_of_lwB4s; // proceed to the next CE element in the CE array
+    switch ( select_lwB4 )
+    {
+    case 0: // always use lwB4_array[0]
+      break;
+    case 1: // use the elements of the 'lwB4_array' in increasing order
+      current_lwB4 = (current_lwB4 + 1) % num_of_lwB4s;
+      break;
+    case 2: // use the elements of the 'lwB4_array' in decreasing order
+      if ( !current_lwB4-- )
+        current_lwB4 = num_of_lwB4s-1;
+      break;
+    case 3: // select an element from the 'lwB4_array' in a pseudorandom way
+      current_lwB4 = uni_dis_lwB4_index(gen_lwB4_index);
+      break;
+    }
+
   } // this is the end of the sending cycle
 
   // Now, we check the time
@@ -376,7 +408,6 @@ int send6Latency(void *par)
 
   return 0;
  }
-
 
 int send4Latency(void *par)
 {
@@ -394,6 +425,7 @@ int send4Latency(void *par)
   uint64_t hz = cp->hz;
   uint64_t start_tsc = cp->start_tsc;
   uint32_t num_of_lwB4s = cp->number_of_lwB4s;
+  unsigned select_lwB4 = cp->select_lwB4;
   lwB4_data *lwB4_array = cp->lwB4_array;
   uint16_t fwd_sport_min = cp->fwd_sport_min;
   uint16_t fwd_sport_max = cp->fwd_sport_max;
@@ -445,7 +477,7 @@ int send4Latency(void *par)
     return -1;
   }
   
-  // check whether the CE array is built or not
+  // check whether the lwB4 array is built or not
   if(!lwB4_array){
     std::cerr << "No lwB4 array can be accessed by the sender" << std::endl;
     return -1;
@@ -553,19 +585,35 @@ int send4Latency(void *par)
     }
   }  
   
-  i = 0; // increase maunally after each sending
-  current_lwB4 = 0; // increase maunally after each sending
+  // prepare random number infrastructure
+  thread_local std::random_device rd;                   // Will be used to obtain a seed for the random number engines
+  thread_local std::mt19937_64 gen_sport(rd());         // Standard 64-bit mersenne_twister_engine seeded with rd()
+  thread_local std::mt19937_64 gen_dport(rd());         // Standard 64-bit mersenne_twister_engine seeded with rd()
+  thread_local std::mt19937_64 gen_lwB4_index(rd());    // Standard 64-bit mersenne_twister_engine seeded with rd()
+
+  std::uniform_int_distribution<int> uni_dis_lwB4_index(0,num_of_lwB4s-1);
+
+  switch ( select_lwB4 )
+  {
+  case 0: // always use lwB4_array[0]
+    current_lwB4 = 0;
+    break;
+  case 1: // use the elements of the 'lwB4_array' in increasing order
+    current_lwB4 = 0; // increase maunally after each sending
+    break;
+  case 2: // use the elements of the 'lwB4_array' in decreasing order
+    current_lwB4 = num_of_lwB4s-1; // decrease maunally after each sending
+    break;
+  case 3: // select an element from the 'lwB4_array' in a pseudorandom way
+    current_lwB4 = uni_dis_lwB4_index(gen_lwB4_index);
+    break;
+  }
 
   int latency_timestamp_no = 0;                           // counter for the latency frames from 0 to num_of_tagged-1
   uint64_t send_next_latency_frame = start_latency_frame; // at what frame count to send the next latency frame
 
-  // prepare random number infrastructure
-  thread_local std::random_device rd_sport;           // Will be used to obtain a seed for the random number engines
-  thread_local std::mt19937_64 gen_sport(rd_sport()); // Standard 64-bit mersenne_twister_engine seeded with rd()
-  thread_local std::random_device rd_dport;           // Will be used to obtain a seed for the random number engines
-  thread_local std::mt19937_64 gen_dport(rd_dport()); // Standard 64-bit mersenne_twister_engine seeded with rd()
-
   // naive sender version: it is simple and fast
+  i = 0; // increase maunally after each sending
   for (sent_frames = 0; sent_frames < frames_to_send; sent_frames++)
   { // Main cycle for the number of frames to send
     bool IsUDPoverIPv4;         // It is true for foreground frames, and false for background frames.
@@ -699,7 +747,22 @@ int send4Latency(void *par)
       i = (i + 1) % N;
     }
 
-    current_lwB4 = (current_lwB4 + 1) % num_of_lwB4s; // proceed to the next CE element in the CE array
+    switch ( select_lwB4 )
+    {
+    case 0: // always use lwB4_array[0]
+      break;
+    case 1: // use the elements of the 'lwB4_array' in increasing order
+      current_lwB4 = (current_lwB4 + 1) % num_of_lwB4s;
+      break;
+    case 2: // use the elements of the 'lwB4_array' in decreasing order
+      if ( !current_lwB4-- )
+        current_lwB4 = num_of_lwB4s-1;
+      break;
+    case 3: // select an element from the 'lwB4_array' in a pseudorandom way
+      current_lwB4 = uni_dis_lwB4_index(gen_lwB4_index);
+      break;
+    }
+
   } // this is the end of the sending cycle
 
   // Now, we check the time
@@ -811,7 +874,7 @@ void Latency::measure(uint16_t leftport, uint16_t rightport)
   uint64_t *left_send_ts, *right_send_ts, *left_receive_ts, *right_receive_ts; // pointers for timestamp arrays
   
   scp = senderCommonParametersLatency(ipv6_frame_size,ipv4_frame_size,frame_rate,test_duration,n,m,hz,start_tsc,
-                                      number_of_lwB4s,lwB4_array,&ipv6_tunnel,&ipv4_server,
+                                      number_of_lwB4s,select_lwB4,lwB4_array,&ipv6_tunnel,&ipv4_server,
                                       &ipv6_left_bg,&ipv6_right_bg,
                                       fwd_sport_min,fwd_sport_max,fwd_dport_min,fwd_dport_max,
                                       rev_sport_min,rev_sport_max,rev_dport_min,rev_dport_max,
@@ -1062,16 +1125,15 @@ void mkLatencyData(uint8_t *data, uint16_t length, uint16_t latency_frame_id)
 }
 
 senderCommonParametersLatency::senderCommonParametersLatency(uint16_t ipv6_frame_size_, uint16_t ipv4_frame_size_, uint32_t frame_rate_, uint16_t test_duration_,
-                                                            uint32_t n_, uint32_t m_, uint64_t hz_, uint64_t start_tsc_, uint32_t number_of_lwB4s_, lwB4_data *lwB4_array_,
-                                                            struct in6_addr *ipv6_tunnel_, uint32_t *ipv4_server_, in6_addr *ipv6_left_bg_, struct in6_addr *ipv6_right_bg_,
-                        uint16_t fwd_sport_min_, uint16_t fwd_sport_max_, uint16_t fwd_dport_min_, uint16_t fwd_dport_max_,
-                        uint16_t rev_sport_min_, uint16_t rev_sport_max_, uint16_t rev_dport_min_, uint16_t rev_dport_max_,
-                                                            uint16_t first_tagged_delay_, uint16_t num_of_tagged_) : senderCommonParameters(ipv6_frame_size_, ipv4_frame_size_, frame_rate_,  test_duration_,
-                                                                                                             n_,  m_,  hz_,  start_tsc_,  number_of_lwB4s_,  lwB4_array_, ipv6_tunnel_, 
-                                                                                                             ipv4_server_, ipv6_left_bg_, ipv6_right_bg_, 
-                        fwd_sport_min_, fwd_sport_max_, fwd_dport_min_, fwd_dport_max_,
-                        rev_sport_min_, rev_sport_max_, rev_dport_min_, rev_dport_max_
-  )
+  uint32_t n_, uint32_t m_, uint64_t hz_, uint64_t start_tsc_, uint32_t number_of_lwB4s_, unsigned select_lwB4_, lwB4_data *lwB4_array_,
+  struct in6_addr *ipv6_tunnel_, uint32_t *ipv4_server_, in6_addr *ipv6_left_bg_, struct in6_addr *ipv6_right_bg_,
+  uint16_t fwd_sport_min_, uint16_t fwd_sport_max_, uint16_t fwd_dport_min_, uint16_t fwd_dport_max_,
+  uint16_t rev_sport_min_, uint16_t rev_sport_max_, uint16_t rev_dport_min_, uint16_t rev_dport_max_,
+  uint16_t first_tagged_delay_, uint16_t num_of_tagged_) : senderCommonParameters(ipv6_frame_size_, ipv4_frame_size_, frame_rate_,  test_duration_,
+  n_, m_, hz_, start_tsc_, number_of_lwB4s_, select_lwB4_, lwB4_array_, ipv6_tunnel_,
+  ipv4_server_, ipv6_left_bg_, ipv6_right_bg_,
+  fwd_sport_min_, fwd_sport_max_, fwd_dport_min_, fwd_dport_max_,
+  rev_sport_min_, rev_sport_max_, rev_dport_min_, rev_dport_max_)
   {
     first_tagged_delay = first_tagged_delay_;
     num_of_tagged = num_of_tagged_;

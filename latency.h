@@ -43,7 +43,7 @@ public:
     uint16_t num_of_tagged; // The number of tagged frames
 
     senderCommonParametersLatency(uint16_t ipv6_frame_size_, uint16_t ipv4_frame_size_, uint32_t frame_rate_, uint16_t test_duration_,
-        uint32_t n_, uint32_t m_, uint64_t hz_, uint64_t start_tsc_, uint32_t number_of_lwB4s_, lwB4_data *lwB4_array_,
+        uint32_t n_, uint32_t m_, uint64_t hz_, uint64_t start_tsc_, uint32_t number_of_lwB4s_, unsigned select_lwB4_, lwB4_data *lwB4_array_,
         struct in6_addr *ipv6_tunnel_, uint32_t *ipv4_server_, in6_addr *ipv6_left_bg_, struct in6_addr *ipv6_right_bg_,
                         uint16_t fwd_sport_min_, uint16_t fwd_sport_max_, uint16_t fwd_dport_min_, uint16_t fwd_dport_max_,
                         uint16_t rev_sport_min_, uint16_t rev_sport_max_, uint16_t rev_dport_min_, uint16_t rev_dport_max_,
