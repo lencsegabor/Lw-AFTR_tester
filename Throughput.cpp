@@ -1038,8 +1038,6 @@ receiverParameters::receiverParameters(){}
 // sends IPv6 Test Frames containing IPv4 Test Frames for throughput (or frame loss rate) measurement
 int send6(void *par)
 {
-  //std::cout << "Send STARTED on CPU core: " << rte_lcore_id() << " Using NUMA node: " << rte_socket_id() << std::endl;
-  
   //  collecting input parameters:
   class senderParameters *p = (class senderParameters *)par;
   class senderCommonParameters *cp = p->cp;
@@ -1080,7 +1078,6 @@ int send6(void *par)
   uint64_t frames_to_send = test_duration * frame_rate; // Each active sender sends this number of frames
   uint64_t sent_frames = 0;                             // counts the number of sent frames
   double elapsed_seconds;                               // for checking the elapsed seconds during sending
-
     
   // all zero IP addresses will be put in the template packets to be able to genereate correct checksum
   uint32_t zero_ipv4;
@@ -1098,7 +1095,7 @@ int send6(void *par)
     return -1;
   }
   
-  // check whether the CE array is built or not
+  // check whether the lwB4 array is built or not
   if(!lwB4_array){
     std::cerr << "No lwB4 array can be accessed by the sender" << std::endl;
     return -1;
@@ -1204,7 +1201,7 @@ int send6(void *par)
 
       std::uniform_int_distribution<int> uni_dis_dport(fwd_dport_min,fwd_dport_max);
       dp = uni_dis_dport(gen_dport);
-      chksum += *udp_dport = htons(dp); // set the destinaton port and add it to the UDP checksum
+      chksum += *udp_dport = htons(dp); // set the destination port and add it to the UDP checksum
     }
     else
     {
@@ -1311,7 +1308,7 @@ int send4(void *par)
     return -1;
   }
   
-  // check whether the CE array is built or not
+  // check whether the lwB4 array is built or not
   if(!lwB4_array){
     std::cerr << "No lwB4 array can be accessed by the sender" << std::endl;
     return -1;
