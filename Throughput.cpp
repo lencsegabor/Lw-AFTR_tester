@@ -1501,7 +1501,22 @@ int send4(void *par)
     while (!rte_eth_tx_burst(eth_id, 0, &pkt_mbuf, 1))
       ; // send out the frame
 
-    current_lwB4 = (current_lwB4 + 1) % num_of_lwB4s; // proceed to the next LwB4 element in the LwB4 array
+    switch ( select_lwB4 )
+    {
+    case 0: // always use lwB4_array[0]
+      break;
+    case 1: // use the elements of the 'lwB4_array' in increasing order
+      current_lwB4 = (current_lwB4 + 1) % num_of_lwB4s;
+      break;
+    case 2: // use the elements of the 'lwB4_array' in decreasing order
+      if ( !current_lwB4-- )
+        current_lwB4 = num_of_lwB4s-1;
+      break;
+    case 3: // select an element from the 'lwB4_array' in a pseudorandom way
+      current_lwB4 = uni_dis_lwB4_index(gen_lwB4_index);
+      break;
+    }
+
     i = (i + 1) % N;
   } // this is the end of the sending cycle
 
