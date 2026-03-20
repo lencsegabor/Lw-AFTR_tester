@@ -255,11 +255,18 @@ int Throughput::readConfigFile(const char *filename) {
         return -1;
       }
     
-    } else if ((pos = findKey(line, "Num-lwB4s")) >= 0){
+    } else if ( (pos = findKey(line, "Num-lwB4s")) >= 0 ){
       sscanf(line + pos, "%u", &number_of_lwB4s);
-      if (number_of_lwB4s < 1 || number_of_lwB4s > 1000000)
+      if ( number_of_lwB4s < 1 || number_of_lwB4s > 1000000 )
       {
         std::cerr << "Input Error: 'Num-lwB4s' must be >= 1 and <= 1000000." << std::endl;
+        return -1;
+      }
+    } else if ( (pos = findKey(line, "Select-lwB4") ) >= 0){
+      sscanf(line + pos, "%u", &select_lwB4);
+      if ( select_lwB4 > 3 )
+      {
+        std::cerr << "Input Error: 'Select-lwB4' must be 0, 1, 2, or 3." << std::endl;
         return -1;
       }
     } else if ( (pos = findKey(line, "IPv6-tunnel")) >= 0 ) {
@@ -912,7 +919,7 @@ void Throughput::measure(uint16_t leftport, uint16_t rightport) {
   receiverParameters rpars, rpars2;
 
   scp = senderCommonParameters(ipv6_frame_size,ipv4_frame_size,frame_rate,test_duration,n,m,hz,start_tsc,
-                               number_of_lwB4s,lwB4_array,&ipv6_tunnel,&ipv4_server,
+                               number_of_lwB4s,select_lwB4,lwB4_array,&ipv6_tunnel,&ipv4_server,
                                &ipv6_left_bg,&ipv6_right_bg,
                                fwd_sport_min, fwd_sport_max, fwd_dport_min, fwd_dport_max,
                                rev_sport_min, rev_sport_max, rev_dport_min, rev_dport_max);
@@ -978,7 +985,7 @@ void Throughput::measure(uint16_t leftport, uint16_t rightport) {
 
 // sets the values of the data fields
 senderCommonParameters::senderCommonParameters(uint16_t ipv6_frame_size_, uint16_t ipv4_frame_size_, uint32_t frame_rate_, uint16_t test_duration_,
-                                              uint32_t n_, uint32_t m_, uint64_t hz_, uint64_t start_tsc_, uint32_t number_of_lwB4s_, lwB4_data *lwB4_array_,
+                                              uint32_t n_, uint32_t m_, uint64_t hz_, uint64_t start_tsc_, uint32_t number_of_lwB4s_, unsigned select_lwB4_, lwB4_data *lwB4_array_,
                                               struct in6_addr *ipv6_tunnel_, uint32_t *ipv4_server_, struct in6_addr *ipv6_left_bg_, struct in6_addr *ipv6_right_bg_,
                         uint16_t fwd_sport_min_, uint16_t fwd_sport_max_, uint16_t fwd_dport_min_, uint16_t fwd_dport_max_,
                         uint16_t rev_sport_min_, uint16_t rev_sport_max_, uint16_t rev_dport_min_, uint16_t rev_dport_max_)
@@ -993,6 +1000,7 @@ senderCommonParameters::senderCommonParameters(uint16_t ipv6_frame_size_, uint16
   hz = hz_;
   start_tsc = start_tsc_;
   number_of_lwB4s = number_of_lwB4s_;
+  select_lwB4 = select_lwB4_;
   lwB4_array = lwB4_array_;
   ipv6_tunnel = ipv6_tunnel_;
   ipv6_left_bg = ipv6_left_bg_; 
@@ -1052,6 +1060,7 @@ int send6(void *par)
   uint64_t hz = cp->hz;
   uint64_t start_tsc = cp->start_tsc;
   uint32_t num_of_lwB4s = cp->number_of_lwB4s;
+  unsigned select_lwB4 = cp->select_lwB4;
   lwB4_data *lwB4_array = cp->lwB4_array;
   uint16_t fwd_sport_min = cp->fwd_sport_min; 
   uint16_t fwd_sport_max = cp->fwd_sport_max;
@@ -1158,16 +1167,32 @@ int send6(void *par)
   
   fg_tun_ipv4_chksum_start = ~*fg_tun_ipv4_chksum[0]; // save the uncomplemented IPv4 header checksum 
   
-  i = 0; // increase maunally after each sending
-  current_lwB4 = 0; // increase maunally after each sending
-
   // prepare random number infrastructure
-  thread_local std::random_device rd_sport;           // Will be used to obtain a seed for the random number engines
-  thread_local std::mt19937_64 gen_sport(rd_sport()); // Standard 64-bit mersenne_twister_engine seeded with rd()
-  thread_local std::random_device rd_dport;           // Will be used to obtain a seed for the random number engines
-  thread_local std::mt19937_64 gen_dport(rd_dport()); // Standard 64-bit mersenne_twister_engine seeded with rd()
+  thread_local std::random_device rd;                   // Will be used to obtain a seed for the random number engines
+  thread_local std::mt19937_64 gen_sport(rd());         // Standard 64-bit mersenne_twister_engine seeded with rd()
+  thread_local std::mt19937_64 gen_dport(rd());         // Standard 64-bit mersenne_twister_engine seeded with rd()
+  thread_local std::mt19937_64 gen_lwB4_index(rd());    // Standard 64-bit mersenne_twister_engine seeded with rd()
+
+  std::uniform_int_distribution<int> uni_dis_lwB4_index(0,num_of_lwB4s-1);
+
+  switch ( select_lwB4 )
+  {
+  case 0: // always use lwB4_array[0]
+    current_lwB4 = 0;
+    break;
+  case 1: // use the elements of the 'lwB4_array' in increasing order
+    current_lwB4 = 0; // increase maunally after each sending
+    break;
+  case 2: // use the elements of the 'lwB4_array' in decreasing order
+    current_lwB4 = num_of_lwB4s-1; // decrease maunally after each sending
+    break;
+  case 3: // select an element from the 'lwB4_array' in a pseudorandom way
+    current_lwB4 = uni_dis_lwB4_index(gen_lwB4_index);
+    break;
+  }
 
   // naive sender version: it is simple and fast
+  i = 0; // increase maunally after each sending
   for (sent_frames = 0; sent_frames < frames_to_send; sent_frames++)
   { // Main cycle for the number of frames to send
     bool IsUDPoverIPv4; 	// It is true for foreground frames, and false for background frames.
@@ -1236,7 +1261,22 @@ int send6(void *par)
     while (!rte_eth_tx_burst(eth_id, 0, &pkt_mbuf, 1))
       ; // send out the frame
 
-    current_lwB4 = (current_lwB4 + 1) % num_of_lwB4s; // proceed to the next LwB4 element in the LwB4 array
+    switch ( select_lwB4 )
+    {
+    case 0: // always use lwB4_array[0]
+      break;
+    case 1: // use the elements of the 'lwB4_array' in increasing order
+      current_lwB4 = (current_lwB4 + 1) % num_of_lwB4s;
+      break;
+    case 2: // use the elements of the 'lwB4_array' in decreasing order
+      if ( !current_lwB4-- ) 
+        current_lwB4 = num_of_lwB4s-1;
+      break;
+    case 3: // select an element from the 'lwB4_array' in a pseudorandom way
+      current_lwB4 = uni_dis_lwB4_index(gen_lwB4_index);
+      break;
+    }
+
     i = (i + 1) % N;
   } // this is the end of the sending cycle
 
@@ -1272,6 +1312,7 @@ int send4(void *par)
   uint64_t hz = cp->hz;
   uint64_t start_tsc = cp->start_tsc;
   uint32_t num_of_lwB4s = cp->number_of_lwB4s;
+  unsigned select_lwB4 = cp->select_lwB4;
   lwB4_data *lwB4_array = cp->lwB4_array;
   uint16_t fwd_sport_min = cp->fwd_sport_min;
   uint16_t fwd_sport_max = cp->fwd_sport_max;
@@ -1369,16 +1410,32 @@ int send4(void *par)
   // save the uncomplemented IPv4 header checksum (same for all values of [i]). So, [0] is enough
   fg_ipv4_chksum_start = ~*fg_ipv4_chksum[0]; 
   
-  i = 0; // increase maunally after each sending
-  current_lwB4 = 0; // increase maunally after each sending
-
   // prepare random number infrastructure
-  thread_local std::random_device rd_sport;           // Will be used to obtain a seed for the random number engines
-  thread_local std::mt19937_64 gen_sport(rd_sport()); // Standard 64-bit mersenne_twister_engine seeded with rd()
-  thread_local std::random_device rd_dport;           // Will be used to obtain a seed for the random number engines
-  thread_local std::mt19937_64 gen_dport(rd_dport()); // Standard 64-bit mersenne_twister_engine seeded with rd()
+  thread_local std::random_device rd;                   // Will be used to obtain a seed for the random number engines
+  thread_local std::mt19937_64 gen_sport(rd());         // Standard 64-bit mersenne_twister_engine seeded with rd()
+  thread_local std::mt19937_64 gen_dport(rd());         // Standard 64-bit mersenne_twister_engine seeded with rd()
+  thread_local std::mt19937_64 gen_lwB4_index(rd());    // Standard 64-bit mersenne_twister_engine seeded with rd()
+
+  std::uniform_int_distribution<int> uni_dis_lwB4_index(0,num_of_lwB4s-1);
+
+  switch ( select_lwB4 )
+  {
+  case 0: // always use lwB4_array[0]
+    current_lwB4 = 0;
+    break;
+  case 1: // use the elements of the 'lwB4_array' in increasing order
+    current_lwB4 = 0; // increase maunally after each sending
+    break;
+  case 2: // use the elements of the 'lwB4_array' in decreasing order
+    current_lwB4 = num_of_lwB4s-1; // decrease maunally after each sending
+    break;
+  case 3: // select an element from the 'lwB4_array' in a pseudorandom way
+    current_lwB4 = uni_dis_lwB4_index(gen_lwB4_index);
+    break;
+  }
 
   // naive sender version: it is simple and fast
+  i = 0; // increase maunally after each sending
   for (sent_frames = 0; sent_frames < frames_to_send; sent_frames++)
   { // Main cycle for the number of frames to send
     bool IsUDPoverIPv4; 	// It is true for foreground frames, and false for background frames.

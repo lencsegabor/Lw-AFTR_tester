@@ -68,15 +68,21 @@ public:
   uint64_t frames_to_send;                                     // number of frames to send
 
   // lw4o6 parameters
-  uint32_t psid_length;            // The number of BMR's PSID bits
-  uint32_t psid;
-  uint16_t num_of_port_sets;      // The number of port sets that can be obtained according to the psid_length
-  uint16_t num_of_ports;          // The number of ports in each port set
-  uint32_t number_of_lwB4s;             // Number of simulated lwB4s
-  struct in6_addr ipv6_tunnel; // The tunnel endpoint
+  uint32_t psid_length;         // The number of PSID bits
+  uint32_t psid;                // The value of the Port Set ID currently used
+  uint16_t num_of_port_sets;    // The number of port sets that can be obtained according to the psid_length
+  uint16_t num_of_ports;        // The number of ports in each port set
+  uint32_t number_of_lwB4s;     // Number of simulated lwB4s
+  unsigned select_lwB4;         // How to select an lwB4 from the lwB4_array? (encoding below)
+  // encoding: 0: use always the very first lwB4 (typically for debugging purposes)
+  //           1: traverse the lwB4_array in increasing order (to save computing power)
+  //           2: traverse the lwB4_array in decreasing order (to save computing power)
+  //           3: select the lwB4 to be used in a pseudorandom way (recommended)
+
+  struct in6_addr ipv6_tunnel;  // The tunnel endpoint
   lwB4_data *lwB4_array;
   std::vector<lwB4_data> tmp_lwb4data; // for reading the lwB4 data file
-  int system_ports;                     //1 if lwB4s can use system ports, 0 otherwise
+  int system_ports;             // 1 if lwB4s can use system ports, 0 otherwise
 
   // helper functions (see their description at their definition)
   int findKey(const char *line, const char *key);
@@ -137,6 +143,7 @@ public:
   uint64_t start_tsc;       
   uint64_t frames_to_send;  
   uint32_t number_of_lwB4s;
+  unsigned select_lwB4;
   lwB4_data *lwB4_array;
 
   uint32_t *ipv4_server;
@@ -154,7 +161,7 @@ public:
   uint16_t rev_dport_max;
 
   senderCommonParameters(uint16_t ipv6_frame_size_, uint16_t ipv4_frame_size_, uint32_t frame_rate_, uint16_t test_duration_,
-                        uint32_t n_, uint32_t m_, uint64_t hz_, uint64_t start_tsc_, uint32_t number_of_lwB4s_, lwB4_data *lwB4_array_,
+                        uint32_t n_, uint32_t m_, uint64_t hz_, uint64_t start_tsc_, uint32_t number_of_lwB4s_, unsigned select_lwB4_, lwB4_data *lwB4_array_,
                         struct in6_addr *ipv6_tunnel_, uint32_t *ipv4_server_, in6_addr *ipv6_left_bg_, struct in6_addr *ipv6_right_bg_,
                         uint16_t fwd_sport_min_, uint16_t fwd_sport_max_, uint16_t fwd_dport_min_, uint16_t fwd_dport_max_,
                         uint16_t rev_sport_min_, uint16_t rev_sport_max_, uint16_t rev_dport_min_, uint16_t rev_dport_max_);
