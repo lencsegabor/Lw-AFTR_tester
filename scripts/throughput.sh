@@ -1,16 +1,15 @@
 #!/bin/bash
 #Parameters
-impl="lw4o6tester-TP-snabb-10G-1024_lwB4-Fg100" # name of the tested implementation (used for logging)
-#impl="p096-10G-p096-self" # name of the tested implementation (used for logging)
-dir="r" # valid values: b,f,r; b: bidirectional, f: forward (Left to Right, 6 --> 4), r: reverse (Right to Left, 6 <-- 4) 
-max=500000 # maximum packet rate
-fs=84 # IPv6 frame size; IPv4 frame size is always 20 bytes less; Tunneled IPv4inIPv6 frame is 20 byte larger 
+impl="tester-10G-dut-iommu-off-mitigations-off-xdp-1q-3_lwB4" # name of the tested implementation (used for logging)
+dir="b" # valid values: b,f,r; b: bidirectional, f: forward (Left to Right, 6 --> 4), r: reverse (Right to Left, 6 <-- 4) 
+max=2000000 # maximum packet rate
+fs=84 # native IPv6 frame size; IPv4 frame size is always 20 bytes less; Tunneled IPv4inIPv6 frame is 20 byte larger 
 xpts=60 # duration (in seconds) of an experiment instance
 to=2000 # timeout in milliseconds
 n=2 # foreground traffic, if ( frame_counter % n < m ) 
 m=2 # E.g. n=m=2 is all foreground traffic; n=2,m=0 is all background traffic; n=10,m=9 is 90% fg and 10% bg
 sleept=10 # sleeping time between the experiments
-e=1 # measurement error: the difference betwen the values of the higher and the lower bound of the binary search, when finishing
+e=1000 # measurement error: the difference betwen the values of the higher and the lower bound of the binary search, when finishing
 no_exp=10 # number of experiments
 res_dir="results" # base directory for the results (they will be copied there at the end)
 
@@ -47,9 +46,9 @@ do
 		r=$(((h+l)/2)) # initialize the test rate with (h+l)/2
 		echo "Testing rate: $r fps."
 		echo "Testing rate: $r fps." >> ratetest.log
-		echo "Command line is: ./build/lw4o6_tester $fs $r $xpts $to $n $m"
+		echo "Command line is: ./build/lwaftr-tp $fs $r $xpts $to $n $m"
 		# Execute the test program
-		./build/lw4o6_tester $fs $r $xpts $to $n $m > temp.out 2>&1
+		./build/lwaftr-tp $fs $r $xpts $to $n $m > temp.out 2>&1
 		# Log and print out info
 		cat temp.out >> ratetest.log
 		cat temp.out | tail
@@ -59,15 +58,20 @@ do
 			echo "Error occurred, testing must stop."
 			exit -1;
 		fi
+                invalid=$(grep 'invalid' temp.out)
+                if [ -n "$invalid" ]; then
+                        echo The test is INVALID due to exceeding the allowed sending time.
+                        echo The test is INVALID due to exceeding the allowed sending time. >> ratetest.log
+                fi
 		# Collect and evaluate the results (depending on the direction of the test)
 		if [ "$dir" == "b" ]; then
-			fwd_rec=$(grep 'forward frames received:' temp.out | awk '{print $4}')
-			rev_rec=$(grep 'reverse frames received:' temp.out | awk '{print $4}')
+			fwd_rec=$(grep 'Forward frames received:' temp.out | awk '{print $4}')
+			rev_rec=$(grep 'Reverse frames received:' temp.out | awk '{print $4}')
 			echo Forward: $fwd_rec frames were received from the required $((xpts*r)) frames
 			echo Forward: $fwd_rec frames were received from the required $((xpts*r)) frames >> ratetest.log
 			echo Reverse: $rev_rec frames were received from the required $((xpts*r)) frames
 			echo Reverse: $rev_rec frames were received from the required $((xpts*r)) frames >> ratetest.log
-			if [ $fwd_rec -eq $((xpts*r)) ] && [ $rev_rec -eq $((xpts*r)) ]; then
+			if [ $fwd_rec -eq $((xpts*r)) ] && [ $rev_rec -eq $((xpts*r)) ] && [ -z "$invalid" ]; then
 				l=$r
 				echo TEST PASSED
 				echo TEST PASSED >> ratetest.log
@@ -79,10 +83,10 @@ do
 	        	fi
 		fi
 		if [ "$dir" == "f" ]; then
-			fwd_rec=$(grep 'forward frames received:' temp.out | awk '{print $4}')
+			fwd_rec=$(grep 'Forward frames received:' temp.out | awk '{print $4}')
 			echo Forward: $fwd_rec frames were received from the required $((xpts*r)) frames
 			echo Forward: $fwd_rec frames were received from the required $((xpts*r)) frames >> ratetest.log
-			if [ $fwd_rec -eq $((xpts*r)) ]; then
+			if [ $fwd_rec -eq $((xpts*r)) ] && [ -z "$invalid" ]; then
 				l=$r
 				echo TEST PASSED
 				echo TEST PASSED >> ratetest.log
@@ -94,10 +98,10 @@ do
 	        	fi
 		fi
 		if [ "$dir" == "r" ]; then
-			rev_rec=$(grep 'reverse frames received:' temp.out | awk '{print $4}')
+			rev_rec=$(grep 'Reverse frames received:' temp.out | awk '{print $4}')
 			echo Reverse: $rev_rec frames were received from the required $((xpts*r)) frames
 			echo Reverse: $rev_rec frames were received from the required $((xpts*r)) frames >> ratetest.log
-			if [ $rev_rec -eq $((xpts*r)) ]; then
+			if [ $rev_rec -eq $((xpts*r)) ] && [ -z "$invalid" ]; then
 				l=$r
 				echo TEST PASSED
 				echo TEST PASSED >> ratetest.log
@@ -129,3 +133,4 @@ mv ratetest.log $dirname/
 mv rate.csv $dirname/
 mv nohup.out $dirname/ 
 cp -a lw4o6.conf $dirname/
+cp -a lwB4Data.conf $dirname/
