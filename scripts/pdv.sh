@@ -59,16 +59,16 @@ do
 	fi
 	# Collect and evaluate the results (depending on the direction of the test)
 	if [ "$dir" == "b" ]; then
-		fwd_PDV=$(grep 'Forward PDV' temp.out | awk '{print $3}')
-		rev_PDV=$(grep 'Reverse PDV' temp.out | awk '{print $3}')
+		fwd_PDV=$(grep 'forward PDV' temp.out | awk '{print $3}')
+		rev_PDV=$(grep 'reverse PDV' temp.out | awk '{print $3}')
 	echo "$N, $fs, $dir, $n, $m, $xpts, $r, $to, $fwd_PDV, $rev_PDV" >> pdv.csv
 	fi
 	if [ "$dir" == "f" ]; then
-                fwd_PDV=$(grep 'Forward PDV' temp.out | awk '{print $3}')
+                fwd_PDV=$(grep 'forward PDV' temp.out | awk '{print $3}')
 	echo "$N, $fs, $dir, $n, $m, $xpts, $r, $to, $fwd_PDV" >> pdv.csv
 	fi
 	if [ "$dir" == "r" ]; then
-                rev_PDV=$(grep 'Reverse PDV' temp.out | awk '{print $3}')
+                rev_PDV=$(grep 'reverse PDV' temp.out | awk '{print $3}')
 	echo "$N, $fs, $dir, $n, $m, $xpts, $r, $to, $rev_PDV" >> pdv.csv
 	fi
 	echo "Sleeping for $sleept seconds..."

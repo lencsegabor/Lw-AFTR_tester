@@ -63,20 +63,20 @@ do
 	fi
 	# Collect and evaluate the results (depending on the direction of the test)
 	if [ "$dir" == "b" ]; then
-		fwd_TL=$(grep 'Forward TL' temp.out | awk '{print $3}')
-		fwd_WCL=$(grep 'Forward WCL' temp.out | awk '{print $3}')
-		rev_TL=$(grep 'Reverse TL' temp.out | awk '{print $3}')
-		rev_WCL=$(grep 'Reverse WCL' temp.out | awk '{print $3}')
+		fwd_TL=$(grep 'forward TL' temp.out | awk '{print $3}')
+		fwd_WCL=$(grep 'forward WCL' temp.out | awk '{print $3}')
+		rev_TL=$(grep 'reverse TL' temp.out | awk '{print $3}')
+		rev_WCL=$(grep 'reverse WCL' temp.out | awk '{print $3}')
 	echo "$N, $fs, $dir, $n, $m, $xpts, $r, $to, $delay, $tags, $fwd_TL, $fwd_WCL, $rev_TL, $rev_WCL" >> latency.csv
 	fi
 	if [ "$dir" == "f" ]; then
-                fwd_TL=$(grep 'Forward TL' temp.out | awk '{print $3}')
-                fwd_WCL=$(grep 'Forward WCL' temp.out | awk '{print $3}')
+                fwd_TL=$(grep 'forward TL' temp.out | awk '{print $3}')
+                fwd_WCL=$(grep 'forward WCL' temp.out | awk '{print $3}')
         echo "$N, $fs, $dir, $n, $m, $xpts, $r, $to, $delay, $tags, $fwd_TL, $fwd_WCL" >> latency.csv
 	fi
 	if [ "$dir" == "r" ]; then
-                rev_TL=$(grep 'Reverse TL' temp.out | awk '{print $3}')
-                rev_WCL=$(grep 'Reverse WCL' temp.out | awk '{print $3}')
+                rev_TL=$(grep 'reverse TL' temp.out | awk '{print $3}')
+                rev_WCL=$(grep 'reverse WCL' temp.out | awk '{print $3}')
         echo "$N, $fs, $dir, $n, $m, $xpts, $r, $to, $delay, $tags, $rev_TL, $rev_WCL" >> latency.csv
 	fi
 	echo "Sleeping for $sleept seconds..."
