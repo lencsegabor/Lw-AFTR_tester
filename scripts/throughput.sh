@@ -61,8 +61,8 @@ do
 		fi
 		# Collect and evaluate the results (depending on the direction of the test)
 		if [ "$dir" == "b" ]; then
-			fwd_rec=$(grep 'forward frames received:' temp.out | awk '{print $4}')
-			rev_rec=$(grep 'reverse frames received:' temp.out | awk '{print $4}')
+			fwd_rec=$(grep 'Forward frames received:' temp.out | awk '{print $4}')
+			rev_rec=$(grep 'Reverse frames received:' temp.out | awk '{print $4}')
 			echo Forward: $fwd_rec frames were received from the required $((xpts*r)) frames
 			echo Forward: $fwd_rec frames were received from the required $((xpts*r)) frames >> ratetest.log
 			echo Reverse: $rev_rec frames were received from the required $((xpts*r)) frames
@@ -79,7 +79,7 @@ do
 	        	fi
 		fi
 		if [ "$dir" == "f" ]; then
-			fwd_rec=$(grep 'forward frames received:' temp.out | awk '{print $4}')
+			fwd_rec=$(grep 'Forward frames received:' temp.out | awk '{print $4}')
 			echo Forward: $fwd_rec frames were received from the required $((xpts*r)) frames
 			echo Forward: $fwd_rec frames were received from the required $((xpts*r)) frames >> ratetest.log
 			if [ $fwd_rec -eq $((xpts*r)) ]; then
@@ -94,7 +94,7 @@ do
 	        	fi
 		fi
 		if [ "$dir" == "r" ]; then
-			rev_rec=$(grep 'reverse frames received:' temp.out | awk '{print $4}')
+			rev_rec=$(grep 'Reverse frames received:' temp.out | awk '{print $4}')
 			echo Reverse: $rev_rec frames were received from the required $((xpts*r)) frames
 			echo Reverse: $rev_rec frames were received from the required $((xpts*r)) frames >> ratetest.log
 			if [ $rev_rec -eq $((xpts*r)) ]; then
