@@ -895,7 +895,7 @@ void Latency::measure(uint16_t leftport, uint16_t rightport)
 
     // set individual parameters for the left sender
     // Initialize the parameter class instance
-    spars = senderParametersLatency(&scp, pkt_pool_left_sender, leftport, "forward", (ether_addr *)mac_left_dut, (ether_addr *)mac_left_tester,
+    spars = senderParametersLatency(&scp, pkt_pool_left_sender, leftport, "Forward", (ether_addr *)mac_left_dut, (ether_addr *)mac_left_tester,
                           left_send_ts);
 
     // start left sender
@@ -903,7 +903,7 @@ void Latency::measure(uint16_t leftport, uint16_t rightport)
       std::cout << "Error: could not start Left Sender." << std::endl;
 
     // set parameters for the right receiver
-    rpars = receiverParametersLatency(finish_receiving, rightport, "forward", num_of_tagged, right_receive_ts);
+    rpars = receiverParametersLatency(finish_receiving, rightport, "Forward", num_of_tagged, right_receive_ts);
 
     // start right receiver
     if (rte_eal_remote_launch(receiveLatency, &rpars, cpu_right_receiver))
@@ -927,7 +927,7 @@ void Latency::measure(uint16_t leftport, uint16_t rightport)
     
     // set individual parameters for the right sender
     // Initialize the parameter class instance
-    spars2 = senderParametersLatency(&scp, pkt_pool_right_sender, rightport, "reverse", (ether_addr *)mac_right_dut, (ether_addr *)mac_right_tester,
+    spars2 = senderParametersLatency(&scp, pkt_pool_right_sender, rightport, "Reverse", (ether_addr *)mac_right_dut, (ether_addr *)mac_right_tester,
                           right_send_ts);
 
     // start right sender
@@ -935,7 +935,7 @@ void Latency::measure(uint16_t leftport, uint16_t rightport)
       std::cout << "Error: could not start Right Sender." << std::endl;
     
     // set parameters for the left receiver
-    rpars2 = receiverParametersLatency(finish_receiving, leftport, "reverse", num_of_tagged, left_receive_ts);
+    rpars2 = receiverParametersLatency(finish_receiving, leftport, "Reverse", num_of_tagged, left_receive_ts);
 
     // start left receiver
     if (rte_eal_remote_launch(receiveLatency, &rpars2, cpu_left_receiver))
@@ -959,9 +959,9 @@ void Latency::measure(uint16_t leftport, uint16_t rightport)
   // Process the timestamps
   int penalty = 1000 * (test_duration - first_tagged_delay) + stream_timeout; // latency to be reported for lost timestamps, expressed in milliseconds
   if (forward)
-    evaluateLatency(num_of_tagged, left_send_ts, right_receive_ts, hz, penalty, "forward");
+    evaluateLatency(num_of_tagged, left_send_ts, right_receive_ts, hz, penalty, "Forward");
   if (reverse)
-    evaluateLatency(num_of_tagged, right_send_ts, left_receive_ts, hz, penalty, "reverse");
+    evaluateLatency(num_of_tagged, right_send_ts, left_receive_ts, hz, penalty, "Reverse");
 
 
   rte_free(lwB4_array); // release the CEs data memory

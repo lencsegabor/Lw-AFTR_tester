@@ -428,8 +428,6 @@ int send6PDV(void *par)
 
 int send4PDV(void *par)
 {
-  //std::cout << "Send STARTED on CPU core: " << rte_lcore_id() << " Using NUMA node: " << rte_socket_id() << std::endl;
-  
   //  collecting input parameters:
   class senderParametersPDV *p = (class senderParametersPDV *)par;
   class senderCommonParameters *cp = p->cp;
@@ -691,8 +689,6 @@ int send4PDV(void *par)
 
 int receivePDV(void *par)
 {
-  //std::cout << "Receive STARTED on CPU core: " << rte_lcore_id() << " Using NUMA node: " << rte_socket_id() << std::endl;
-  
   // collecting input parameters:
   class receiverParametersPDV *p = (class receiverParametersPDV *)par;
   uint64_t finish_receiving = p->finish_receiving;
@@ -805,7 +801,7 @@ void PDV::measure(uint16_t leftport, uint16_t rightport)
     // set individual parameters for the left sender
     // Initialize the parameter class instance
 
-    spars = senderParametersPDV(&scp,pkt_pool_left_sender,leftport,"forward",(ether_addr *)mac_left_dut,(ether_addr *)mac_left_tester,
+    spars = senderParametersPDV(&scp,pkt_pool_left_sender,leftport,"Forward",(ether_addr *)mac_left_dut,(ether_addr *)mac_left_tester,
                                 &left_send_ts);
 
     // start left sender
@@ -813,7 +809,7 @@ void PDV::measure(uint16_t leftport, uint16_t rightport)
       std::cout << "Error: could not start Left Sender." << std::endl;
 
     // set parameters for the right receiver
-    rpars = receiverParametersPDV(finish_receiving,rightport,"forward",test_duration*frame_rate,frame_timeout,&right_receive_ts);
+    rpars = receiverParametersPDV(finish_receiving,rightport,"Forward",test_duration*frame_rate,frame_timeout,&right_receive_ts);
 
     // start right receiver
     if (rte_eal_remote_launch(receivePDV,&rpars,cpu_right_receiver))
@@ -826,7 +822,7 @@ void PDV::measure(uint16_t leftport, uint16_t rightport)
     
     // set individual parameters for the right sender
     // Initialize the parameter class instance
-    spars2 = senderParametersPDV(&scp,pkt_pool_right_sender,rightport,"reverse",(ether_addr *)mac_right_dut,(ether_addr *)mac_right_tester, 
+    spars2 = senderParametersPDV(&scp,pkt_pool_right_sender,rightport,"Reverse",(ether_addr *)mac_right_dut,(ether_addr *)mac_right_tester, 
                                  &right_send_ts);
 
     // start right sender
@@ -834,7 +830,7 @@ void PDV::measure(uint16_t leftport, uint16_t rightport)
       std::cout << "Error: could not start Right Sender." << std::endl;
     
     // set parameters for the left receiver
-    rpars2 = receiverParametersPDV(finish_receiving,leftport,"reverse",test_duration*frame_rate,frame_timeout,&left_receive_ts);
+    rpars2 = receiverParametersPDV(finish_receiving,leftport,"Reverse",test_duration*frame_rate,frame_timeout,&left_receive_ts);
 
     // start left receiver
     if (rte_eal_remote_launch(receivePDV,&rpars2,cpu_left_receiver))
@@ -859,9 +855,9 @@ void PDV::measure(uint16_t leftport, uint16_t rightport)
   int penalty = 1000 * test_duration + stream_timeout; // latency to be reported for lost timestamps, expressed in milliseconds
 
   if (forward)
-    evaluatePDV(test_duration * frame_rate, left_send_ts, right_receive_ts, hz, frame_timeout, penalty, "forward");
+    evaluatePDV(test_duration * frame_rate, left_send_ts, right_receive_ts, hz, frame_timeout, penalty, "Forward");
   if (reverse)
-    evaluatePDV(test_duration * frame_rate, right_send_ts, left_receive_ts, hz, frame_timeout, penalty, "reverse");
+    evaluatePDV(test_duration * frame_rate, right_send_ts, left_receive_ts, hz, frame_timeout, penalty, "Reverse");
 
   rte_free(lwB4_array); // release the lwB4 data memory
 

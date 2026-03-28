@@ -930,14 +930,14 @@ void Throughput::measure(uint16_t leftport, uint16_t rightport) {
 
     // set individual parameters for the left sender
     // Initialize the parameter class instance
-    spars = senderParameters(&scp, pkt_pool_left_sender, leftport, "forward", (ether_addr *)mac_left_dut, (ether_addr *)mac_left_tester);
+    spars = senderParameters(&scp, pkt_pool_left_sender, leftport, "Forward", (ether_addr *)mac_left_dut, (ether_addr *)mac_left_tester);
 
     // start left sender
     if (rte_eal_remote_launch(send6, &spars, cpu_left_sender))
       std::cout << "Error: could not start Left Sender." << std::endl;
 
     // set parameters for the right receiver
-    rpars = receiverParameters(finish_receiving, rightport, "forward");
+    rpars = receiverParameters(finish_receiving, rightport, "Forward");
 
     // start right receiver
     if (rte_eal_remote_launch(receive, &rpars, cpu_right_receiver))
@@ -949,14 +949,14 @@ void Throughput::measure(uint16_t leftport, uint16_t rightport) {
 
     // set individual parameters for the right sender
     // Initialize the parameter class instance
-    spars2 = senderParameters(&scp, pkt_pool_right_sender, rightport, "reverse", (ether_addr *)mac_right_dut, (ether_addr *)mac_right_tester);
+    spars2 = senderParameters(&scp, pkt_pool_right_sender, rightport, "Reverse", (ether_addr *)mac_right_dut, (ether_addr *)mac_right_tester);
 
     // start right sender
     if (rte_eal_remote_launch(send4, &spars2, cpu_right_sender))
       std::cout << "Error: could not start Right Sender." << std::endl;
 
     // set parameters for the left receiver
-    rpars2 = receiverParameters(finish_receiving, leftport, "reverse");
+    rpars2 = receiverParameters(finish_receiving, leftport, "Reverse");
 
     // start left receiver
     if (rte_eal_remote_launch(receive, &rpars2, cpu_left_receiver))
@@ -1296,8 +1296,6 @@ int send6(void *par)
 // sends IPv4 Test Frames for throughput (or frame loss rate) measurement
 int send4(void *par)
 {
-  //std::cout << "Send STARTED on CPU core: " << rte_lcore_id() << " Using NUMA node: " << rte_socket_id() << std::endl;
-  
   //  collecting input parameters:
   class senderParameters *p = (class senderParameters *)par;
   class senderCommonParameters *cp = p->cp;
@@ -1540,8 +1538,6 @@ int send4(void *par)
 // IPv4 Protolcol: 14+9=23, UDP Data for IPv4: 14+20+8=42
 int receive(void *par)
 {
-  //std::cout << "Receive STARTED on CPU core: " << rte_lcore_id() << " Using NUMA node: " << rte_socket_id() << std::endl;
-  
   // collecting input parameters:
   class receiverParameters *p = (class receiverParameters *)par;
   uint64_t finish_receiving = p->finish_receiving;
