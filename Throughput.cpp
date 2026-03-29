@@ -335,8 +335,10 @@ int Throughput::readlwB4Data(const char *filename) {
     std::cerr << "Input Error: Can't open file '" << LWB4DATAFILE << "'." << std::endl;
     return -1;
   }
-  
+
   for ( line_no=1; fgets(line, LINELEN+1, f); line_no++ ) {
+    if ( tmp_lwb4data.size() == number_of_lwB4s )
+      break; // the required number of lwB4s were already read: no more needed
     if ( (pos = findKey(line, "[]")) == -2 ){
 		  if (new_lwB4){
 			   tmp_lwb4data.push_back(tmp_obj);	
@@ -372,12 +374,12 @@ int Throughput::readlwB4Data(const char *filename) {
   }   
   
   //Save the last lwB4 to the vector
-  if (new_lwB4){
+  if ( new_lwB4 && (tmp_lwb4data.size()<number_of_lwB4s) ){
     tmp_lwb4data.push_back(tmp_obj);	
   }
   std::cout << "Number of lwB4s read from lwB4Data.conf: " << tmp_lwb4data.size() << std::endl;
-  if (tmp_lwb4data.size() != number_of_lwB4s) {
-    std::cerr << "Number of lwB4 number is not the same as declared in lw4o6.conf" << std::endl;
+  if ( tmp_lwb4data.size() < number_of_lwB4s) {
+    std::cerr << "Error: the number of lwB4s in " << LWB4DATAFILE << " is less than declared in " << CONFIGFILE << std::endl;
     return -1;
   }
 
