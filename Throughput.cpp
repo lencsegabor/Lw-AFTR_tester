@@ -640,11 +640,6 @@ int Throughput::init(const char *argv0, uint16_t leftport, uint16_t rightport)
     check_tsc(cpu_left_receiver, "Left Receiver");
   }
 
-  // prepare further values for testing
-  hz = rte_get_timer_hz();                                                       // number of clock cycles per second
-  start_tsc = rte_rdtsc() + hz * START_DELAY / 1000;                             // Each active sender starts sending at this time
-  finish_receiving = start_tsc + hz * (test_duration + stream_timeout / 1000.0); // Each receiver stops at this time
-  
   
   for(int i = 0; i < tmp_lwb4data.size(); i++){
     num_of_port_sets = pow(2.0, tmp_lwb4data.at(i).psid_length);
@@ -688,7 +683,7 @@ int Throughput::init(const char *argv0, uint16_t leftport, uint16_t rightport)
     sort(index.rbegin(), index.rend());
     for (int i : index){ std::cout << i << " " << std::endl ;}
     for(int i : index){
-      std::cout << "System ports are not allowed! Deleting lwb4 with psdi " << tmp_lwb4data.at(i).psid << std::endl;
+      std::cout << "System ports are not allowed! Deleting lwB4 with PSID " << tmp_lwb4data.at(i).psid << std::endl;
       std::cout << "Deleted Min port " << tmp_lwb4data.at(i).min_port << std::endl;
       std::cout << "Deleted Max port " << tmp_lwb4data.at(i).max_port << std::endl;
 
@@ -701,7 +696,7 @@ int Throughput::init(const char *argv0, uint16_t leftport, uint16_t rightport)
   std::ranges::shuffle(tmp_lwb4data, gen);
 
   // allocate and build a memory to store the data of all possible simulated LwB4s.
-  //alloc memory in the numa node what LEFTPORT using
+  // allocate memory in the NUMA node what LEFTPORT using
   lwB4_array = (lwB4_data *)rte_malloc_socket("LwB4s data memory", tmp_lwb4data.size() * sizeof(lwB4_data), 0, rte_eth_dev_socket_id(LEFTPORT)); 
   
   if (!lwB4_array){
@@ -716,6 +711,11 @@ int Throughput::init(const char *argv0, uint16_t leftport, uint16_t rightport)
     //std::cout << "Max port " << tmp_lwb4data.at(i).max_port << std::endl;
     lwB4_array[i] = tmp_lwb4data.at(i);
   }
+
+  // prepare further values for testing
+  hz = rte_get_timer_hz();                                                       // number of clock cycles per second
+  start_tsc = rte_rdtsc() + hz * START_DELAY / 1000;                             // Each active sender starts sending at this time
+  finish_receiving = start_tsc + hz * (test_duration + stream_timeout / 1000.0); // Each receiver stops at this time
 
   return 0;
 } //end init
