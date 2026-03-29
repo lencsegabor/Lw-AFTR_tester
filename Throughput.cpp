@@ -257,9 +257,9 @@ int Throughput::readConfigFile(const char *filename) {
     
     } else if ( (pos = findKey(line, "Num-lwB4s")) >= 0 ){
       sscanf(line + pos, "%u", &number_of_lwB4s);
-      if ( number_of_lwB4s < 1 || number_of_lwB4s > 1000000 )
+      if ( number_of_lwB4s < 1 || number_of_lwB4s > 100000000 )
       {
-        std::cerr << "Input Error: 'Num-lwB4s' must be >= 1 and <= 1000000." << std::endl;
+        std::cerr << "Input Error: 'Num-lwB4s' must be >= 1 and <= 100000000." << std::endl;
         return -1;
       }
     } else if ( (pos = findKey(line, "Select-lwB4") ) >= 0){
@@ -337,7 +337,7 @@ int Throughput::readlwB4Data(const char *filename) {
   }
   
   for ( line_no=1; fgets(line, LINELEN+1, f); line_no++ ) {
-	  if ( (pos = findKey(line, "[]")) == -2 ){
+    if ( (pos = findKey(line, "[]")) == -2 ){
 		  if (new_lwB4){
 			   tmp_lwb4data.push_back(tmp_obj);	
 		  }
@@ -348,11 +348,6 @@ int Throughput::readlwB4Data(const char *filename) {
       if ( (pos = findKey(line, "b4-ipv6")) >= 0 ) {
         if ( inet_pton(AF_INET6, prune(line+pos), reinterpret_cast<void *>(&tmp_obj.b4_ipv6_addr)) != 1 ) {
           std::cerr << "Input Error: Bad 'b4-ipv6' address." << std::endl;
-          return -1;
-        }
-      } else if ( (pos = findKey(line, "br-address")) >= 0 ) {
-        if ( inet_pton(AF_INET6, prune(line+pos), reinterpret_cast<void *>(&tmp_obj.aftr_tunnel_addr)) != 1 ) {
-          std::cerr << "Input Error: Bad 'br-address' address." << std::endl;
           return -1;
         }
       } else if ( (pos = findKey(line, "ipv4")) >= 0 ) {
@@ -373,7 +368,7 @@ int Throughput::readlwB4Data(const char *filename) {
           return -1;
         }
       }
-	  }
+    }
   }   
   
   //Save the last lwB4 to the vector
@@ -1589,24 +1584,23 @@ int receive(void *par)
 int Throughput::generate_lwB4Data(int argc, const char *argv[]){
 
   std::cout << "READ CMD STARTED" << std::endl;
-  if (argc != 8)
+  if (argc != 7)
   {
-    std::cerr << "Input Error: Argument missmatch." << std::endl;
-    std::cerr << "The correct format is: ./build/lw4o6_tester generate_lwB4Data <ipv4> <num_ipv4s> <br_address> <b4_ipv6> <psid_len> <output_file>" << std::endl;
+    std::cerr << "Input Error: Argument mismatch." << std::endl;
+    std::cerr << "The correct format is: " << argv[0] << " generate_lwB4Data <ipv4> <num_ipv4s> <b4_ipv6> <psid_len> <output_file>" << std::endl;
     return -1;
   }
 
   //check paramas
   std::string ipv4 = (std::string)argv[2];
   int num_address = std::atoi(argv[3]);
-  std::string br_address = (std::string)argv[4];
-  std::string ipv6 = (std::string)argv[5];
-  int psid_len = std::atoi(argv[6]);
+  std::string ipv6 = (std::string)argv[4];
+  int psid_len = std::atoi(argv[5]);
   if (psid_len < 1 || psid_len > 16){
     std::cerr << "Input Error: psid_length must be between 1 and 16." << std::endl;
     return -1;
   }
-  std::string file_name = (std::string)argv[7];
+  std::string file_name = (std::string)argv[6];
 
   std::ofstream outfile(file_name);
   if (!outfile) {
@@ -1626,7 +1620,6 @@ int Throughput::generate_lwB4Data(int argc, const char *argv[]){
       outfile << "[ ]" << "\n";
       outfile << "ipv4 " << ipv4 << "\n";
       outfile << "b4-ipv6 " << ipv6 << "\n";
-      outfile << "br-address " << br_address << "\n";
       outfile << "psid-length " << psid_len << "\n";
       outfile << "psid " << current_psid << "\n"; 
 

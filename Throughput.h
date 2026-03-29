@@ -14,7 +14,6 @@ public:
   uint32_t psid;
   uint32_t psid_length;
   struct in6_addr b4_ipv6_addr;
-  struct in6_addr aftr_tunnel_addr;
   uint32_t min_port;
   uint32_t max_port;
 };
