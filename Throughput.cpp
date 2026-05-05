@@ -23,7 +23,6 @@ Throughput::Throughput(){
   rev_dport_max = 49151;         // default value: as recommended by RFC 4814
   rev_sport_min = 1024;          // default value: as recommended by RFC 4814
   rev_sport_max = 65535;         // default value: as recommended by RFC 4814
-  system_ports = 1;
 };
 
 // reports the TSC of the core (in the variable pointed by the input parameter), on which it is running
@@ -272,13 +271,6 @@ int Throughput::readConfigFile(const char *filename) {
     } else if ( (pos = findKey(line, "IPv6-tunnel")) >= 0 ) {
       if ( inet_pton(AF_INET6, prune(line+pos), reinterpret_cast<void *>(&ipv6_tunnel)) != 1 ) {
          std::cerr << "Input Error: Bad 'IPv6-tunnel' address." << std::endl;
-        return -1;
-      }
-    } else if ( (pos = findKey(line, "System-ports")) >= 0 ) {
-      sscanf(line+pos, "%d", &system_ports);
-      if (!(system_ports == 0 || system_ports == 1))
-      {
-        std::cerr << "Input Error: 'System-ports' must be either 1 for allowing the use of system ports or 0 for not allowing it." << std::endl;
         return -1;
       }
     } else if ( nonComment(line) ) { // It may be too strict!
@@ -651,44 +643,18 @@ int Throughput::init(const char *argv0, uint16_t leftport, uint16_t rightport)
       tmp_lwb4data.at(i).min_port = (num_of_ports * tmp_lwb4data.at(i).psid);
     }
 
-    if(tmp_lwb4data.at(i).min_port < 1024){
-      std::cout << "Warning: System Ports SHOULD NOT be allocated to lwB4s"  << std::endl;
-    } else if(tmp_lwb4data.at(i).min_port > 65535){
+    if(tmp_lwb4data.at(i).min_port > 65535){
       std::cerr << "Minimum port for lwB4 can't be greater than 65535"  << std::endl;
       return -1;
     }
     
     tmp_lwb4data.at(i).max_port = tmp_lwb4data.at(i).min_port + (num_of_ports -1);
 
-    if(tmp_lwb4data.at(i).max_port < 1024){
-      std::cout << "Warning: System Ports SHOULD NOT be allocated to lwB4s"  << std::endl;
-    }else if(tmp_lwb4data.at(i).max_port > 65535){
+    if(tmp_lwb4data.at(i).max_port > 65535){
       std::cerr << "Maximum port for lwB4 can't be greater than 65535" << std::endl;
       return -1;
     }
     tmp_lwb4data.at(i).ipv4_addr_chksum = rte_raw_cksum(&tmp_lwb4data.at(i).ipv4_addr,4); //calculate the IPv4 header checksum  
-  }
-
-  //delete lwB4s that are using system ports
-  if (system_ports == 0){
-    std::vector<int> index;
-    for(int i = 0; i < tmp_lwb4data.size(); i++){
-      if (tmp_lwb4data.at(i).min_port < 1023 || tmp_lwb4data.at(i).max_port < 1023)
-      {
-        index.push_back(i);
-      }
-    }
-    
-    
-    sort(index.rbegin(), index.rend());
-    for (int i : index){ std::cout << i << " " << std::endl ;}
-    for(int i : index){
-      std::cout << "System ports are not allowed! Deleting lwB4 with PSID " << tmp_lwb4data.at(i).psid << std::endl;
-      std::cout << "Deleted Min port " << tmp_lwb4data.at(i).min_port << std::endl;
-      std::cout << "Deleted Max port " << tmp_lwb4data.at(i).max_port << std::endl;
-
-      tmp_lwb4data.erase(tmp_lwb4data.begin() + i);
-    }
   }
 
   thread_local std::random_device rd;
@@ -1584,25 +1550,30 @@ int receive(void *par)
 }
 
 int Throughput::generate_lwB4Data(int argc, const char *argv[]){
-
-  std::cout << "READ CMD STARTED" << std::endl;
-  if (argc != 7)
+  int skip; // if non-zero, then the port sets containing system ports are skipped
+  int num_of_ports; // number of ports in a port set
+  if ( argc < 7 || argc > 8 )
   {
     std::cerr << "Input Error: Argument mismatch." << std::endl;
-    std::cerr << "The correct format is: " << argv[0] << " generate_lwB4Data <ipv4> <num_ipv4s> <b4_ipv6> <psid_len> <output_file>" << std::endl;
+    std::cerr << "The correct format is: " << argv[0] << " generate_lwB4Data <ipv4> <num_ipv4s> <b4_ipv6> <psid_len> <output_file> [skip]" << std::endl;
     return -1;
   }
 
   //check paramas
   std::string ipv4 = (std::string)argv[2];
-  int num_address = std::atoi(argv[3]);
+  int num_ipv4 = std::atoi(argv[3]);
   std::string ipv6 = (std::string)argv[4];
   int psid_len = std::atoi(argv[5]);
-  if (psid_len < 1 || psid_len > 16){
+  if ( psid_len < 1 || psid_len > 16 ){
     std::cerr << "Input Error: psid_length must be between 1 and 16." << std::endl;
     return -1;
   }
   std::string file_name = (std::string)argv[6];
+  if ( argv[7] && (std::string)argv[7] == "skip" ) {
+    skip = 1; // port sets containing system ports should be skipped
+    num_of_ports = 1 << (16-psid_len);
+  } else
+    skip = 0; // all port ranges can be used
 
   std::ofstream outfile(file_name);
   if (!outfile) {
@@ -1612,20 +1583,21 @@ int Throughput::generate_lwB4Data(int argc, const char *argv[]){
   
   std::string tmp_ipv4;
   std::string tmp_ipv6;
-  int current_psid=0;
-  int max_psid = int(pow(2,psid_len)) -1;
+  int max_psid = (1<<psid_len) - 1;
   
-  for (int current_lwB4=0; current_lwB4< num_address; current_lwB4++){
-    for(current_psid; current_psid <= max_psid; current_psid++){
-      
-      //lwB4 to the conf file
-      outfile << "[ ]" << "\n";
-      outfile << "ipv4 " << ipv4 << "\n";
-      outfile << "b4-ipv6 " << ipv6 << "\n";
-      outfile << "psid-length " << psid_len << "\n";
-      outfile << "psid " << current_psid << "\n"; 
-
-      //increase ipv6
+  for ( int i=0; i<num_ipv4; i++ ){
+    for( int current_psid=0; current_psid <= max_psid; current_psid++ ){
+      if ( skip && current_psid*num_of_ports < 1024 )
+        ; // this port set is skipped
+      else {
+        // write the lwB4 entry into the conf file
+        outfile << "[ ]" << "\n";
+        outfile << "ipv4 " << ipv4 << "\n";
+        outfile << "b4-ipv6 " << ipv6 << "\n";
+        outfile << "psid-length " << psid_len << "\n";
+        outfile << "psid " << current_psid << "\n";
+      }
+      // increase the IPv6 address
       struct in6_addr addr;
       if (inet_pton(AF_INET6, ipv6.c_str(), &addr) != 1) {
         throw std::runtime_error("Invalid IPv6 address: " + ipv6);
@@ -1642,7 +1614,7 @@ int Throughput::generate_lwB4Data(int argc, const char *argv[]){
       ipv6 = std::string(buffer);
     }
 
-    //increase ipv4 cim
+    // increase the IPv4 address
     struct in_addr addr;
     if (inet_pton(AF_INET, ipv4.c_str(), &addr) != 1) {
         throw std::runtime_error("Invalid IPv4 address: " + ipv4);
@@ -1654,11 +1626,8 @@ int Throughput::generate_lwB4Data(int argc, const char *argv[]){
         throw std::runtime_error("inet_ntop failed");
     }
     ipv4 = std::string(buffer);
-
-    //set psid to 0 for next ipv4
-    current_psid = 0;
   }
-    
+  std::cout << "Binding Table data is generated into file " << file_name << "." << std::endl;
   return 0;
 }
 
