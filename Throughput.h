@@ -81,7 +81,6 @@ public:
   struct in6_addr ipv6_tunnel;  // The tunnel endpoint
   lwB4_data *lwB4_array;
   std::vector<lwB4_data> tmp_lwb4data; // for reading the lwB4 data file
-  int system_ports;             // 1 if lwB4s can use system ports, 0 otherwise
 
   // helper functions (see their description at their definition)
   int findKey(const char *line, const char *key);
