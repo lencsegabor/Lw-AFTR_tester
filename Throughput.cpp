@@ -357,8 +357,8 @@ int Throughput::readlwB4Data(const char *filename) {
         }
       } else if ( (pos = findKey(line, "psid")) >= 0 ) {
         sscanf(line+pos, "%u", &tmp_obj.psid);
-        if ( tmp_obj.psid >= pow(2.0, tmp_obj.psid_length) ) {
-          std::cerr << "ERROR: PSID cannot be greater then 2**psid_length" << std::endl;
+        if ( tmp_obj.psid >= 1 << tmp_obj.psid_length ) {
+          std::cerr << "Input Error: 'psid' must be < 2**psid_length" << std::endl;
           return -1;
         }
       }
@@ -632,28 +632,11 @@ int Throughput::init(const char *argv0, uint16_t leftport, uint16_t rightport)
     check_tsc(cpu_left_receiver, "Left Receiver");
   }
 
-  
+  // calculate the missing elements of the lwB4 array entries
   for(int i = 0; i < tmp_lwb4data.size(); i++){
-    num_of_port_sets = pow(2.0, tmp_lwb4data.at(i).psid_length);
-    num_of_ports = (int)(65536.0 / num_of_port_sets);
-
-    if (tmp_lwb4data.at(i).psid == 0){
-      tmp_lwb4data.at(i).min_port = 0;
-    }else {
-      tmp_lwb4data.at(i).min_port = (num_of_ports * tmp_lwb4data.at(i).psid);
-    }
-
-    if(tmp_lwb4data.at(i).min_port > 65535){
-      std::cerr << "Minimum port for lwB4 can't be greater than 65535"  << std::endl;
-      return -1;
-    }
-    
+    num_of_ports = 1 << (16-tmp_lwb4data.at(i).psid_length);
+    tmp_lwb4data.at(i).min_port = num_of_ports * tmp_lwb4data.at(i).psid;
     tmp_lwb4data.at(i).max_port = tmp_lwb4data.at(i).min_port + (num_of_ports -1);
-
-    if(tmp_lwb4data.at(i).max_port > 65535){
-      std::cerr << "Maximum port for lwB4 can't be greater than 65535" << std::endl;
-      return -1;
-    }
     tmp_lwb4data.at(i).ipv4_addr_chksum = rte_raw_cksum(&tmp_lwb4data.at(i).ipv4_addr,4); //calculate the IPv4 header checksum  
   }
 
@@ -666,17 +649,13 @@ int Throughput::init(const char *argv0, uint16_t leftport, uint16_t rightport)
   lwB4_array = (lwB4_data *)rte_malloc_socket("LwB4s data memory", tmp_lwb4data.size() * sizeof(lwB4_data), 0, rte_eth_dev_socket_id(LEFTPORT)); 
   
   if (!lwB4_array){
-    std::cerr <<  "malloc failure!! Can not create memory for lwB4 data" << std::endl;
+    std::cerr << "Error: rte_malloc_socket() failure: Can not allocate NUMA local memory for lwB4 data!" << std::endl;
     return -1;
   }
 
-  for(int i = 0; i < tmp_lwb4data.size(); i++){
-    //For easier debugging if needed
-    //std::cout << "PSID " << tmp_lwb4data.at(i).psid << std::endl;
-    //std::cout << "Min port " << tmp_lwb4data.at(i).min_port << std::endl;
-    //std::cout << "Max port " << tmp_lwb4data.at(i).max_port << std::endl;
+  // copy the simulated lwB4 entries
+  for(int i = 0; i < tmp_lwb4data.size(); i++)
     lwB4_array[i] = tmp_lwb4data.at(i);
-  }
 
   // prepare further values for testing
   hz = rte_get_timer_hz();                                                       // number of clock cycles per second
