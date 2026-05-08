@@ -328,6 +328,8 @@ int Throughput::readlwB4Data(const char *filename) {
     return -1;
   }
 
+  std::cout << "Reading lwB4s from file '" << LWB4DATAFILE << "'. " << std::endl;
+
   for ( line_no=1; fgets(line, LINELEN+1, f); line_no++ ) {
     if ( tmp_lwb4data.size() == number_of_lwB4s )
       break; // the required number of lwB4s were already read: no more needed
@@ -369,7 +371,7 @@ int Throughput::readlwB4Data(const char *filename) {
   if ( new_lwB4 && (tmp_lwb4data.size()<number_of_lwB4s) ){
     tmp_lwb4data.push_back(tmp_obj);	
   }
-  std::cout << "Number of lwB4s read from lwB4Data.conf: " << tmp_lwb4data.size() << std::endl;
+  std::cout << "Done. Number of lwB4s read: " << tmp_lwb4data.size() << std::endl;
   if ( tmp_lwb4data.size() < number_of_lwB4s) {
     std::cerr << "Error: the number of lwB4s in " << LWB4DATAFILE << " is less than declared in " << CONFIGFILE << std::endl;
     return -1;
@@ -382,7 +384,6 @@ int Throughput::readlwB4Data(const char *filename) {
 // It may be called only AFTER the execution of readConfigFile
 int Throughput::readCmdLine(int argc, const char *argv[])
 {
-  std::cout << "READ CMD STARTED" << std::endl;
   if (argc < 7)
   {
     printf("argc : %d\n", argc);
@@ -422,7 +423,6 @@ int Throughput::readCmdLine(int argc, const char *argv[])
     std::cerr << "Input Error: Cannot read the value of 'm'." << std::endl;
     return -1;
   }
-  std::cout << "READ CMD ENDED" << std::endl;
   return 0;
 }
 
@@ -449,13 +449,11 @@ int Throughput::init(const char *argv0, uint16_t leftport, uint16_t rightport)
     snprintf(coresList, 101, "0,%d,%d", cpu_right_sender, cpu_left_receiver); // only reverse (right to left) is active
 
   rte_argv[2] = coresList;
-  std::cout << coresList << std::endl;
   rte_argv[3] = "-n";
   snprintf(numChannels, 11, "%hhu", memory_channels);
   rte_argv[4] = numChannels;
   rte_argv[5] = 0;
 
-  std::cout << coresList << std::endl;
   if (rte_eal_init(rte_argc, const_cast<char **>(rte_argv)) < 0)
   {
     std::cerr << "Error: DPDK RTE initialization failed, Tester exits." << std::endl;
@@ -632,7 +630,9 @@ int Throughput::init(const char *argv0, uint16_t leftport, uint16_t rightport)
     check_tsc(cpu_left_receiver, "Left Receiver");
   }
 
-  // calculate the missing elements of the lwB4 array entries
+  // Deal with the lwB4's to be simulated
+
+  // calculate the missing elements of the temporary lwB4 entries
   for(int i = 0; i < tmp_lwb4data.size(); i++){
     num_of_ports = 1 << (16-tmp_lwb4data.at(i).psid_length);
     tmp_lwb4data.at(i).min_port = num_of_ports * tmp_lwb4data.at(i).psid;
@@ -640,9 +640,13 @@ int Throughput::init(const char *argv0, uint16_t leftport, uint16_t rightport)
     tmp_lwb4data.at(i).ipv4_addr_chksum = rte_raw_cksum(&tmp_lwb4data.at(i).ipv4_addr,4); //calculate the IPv4 header checksum  
   }
 
-  thread_local std::random_device rd;
-  thread_local std::mt19937 gen {rd()};
-  std::ranges::shuffle(tmp_lwb4data, gen);
+  // put the lwB4's into pseudorandom order if not pseudorandom selection is used
+  if ( select_lwB4 < 3 ) {
+    std::cout << "Info: Putting lwB4 data into pseudorandom order." << std::endl;
+    thread_local std::random_device rd;
+    thread_local std::mt19937 gen {rd()};
+    std::ranges::shuffle(tmp_lwb4data, gen);
+  }
 
   // allocate and build a memory to store the data of all possible simulated LwB4s.
   // allocate memory in the NUMA node what LEFTPORT using
