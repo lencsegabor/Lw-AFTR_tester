@@ -1,8 +1,8 @@
 #!/bin/bash
 #Parameters
-impl="lw4o6tester-PDV-snabb-10G-1023_lwB4-Fg100" # name of the tested implementation (used for logging)
+impl="tester-3200MHz-2-4-6-8-10G-S-3-lwB4-4-Fg-100-DUT-XDP-PDV" # name of the tested implementation (used for logging)
 dir="b" # valid values: b,f,r; b: bidirectional, f: forward (Left to Right, 6 --> 4), r: reverse (Right to Left, 6 <-- 4) 
-r=117464 # frame pdv determined by thropughput measurement
+r=1599520 # 1753544 # frame pdv determined by thropughput measurement
 fs=84 # IPv6 frame size; IPv4 frame size is always 20 bytes less 
 xpts=60 # duration (in seconds) of an experiment instance
 to=2000 # timeout in milliseconds
@@ -44,10 +44,10 @@ for (( N=1; N <= $no_exp; N++ ))
 do
 	echo "Exectuting experiment #$N..."
 	echo "Exectuting experiment #$N..." >> pdvtest.log
-	echo "Command line is: ./build/lw4o6_tester $fs $r $xpts $to $n $m 0"
-	echo "Command line is: ./build/lw4o6_tester $fs $r $xpts $to $n $m 0" >> pdvtest.log
+	echo "Command line is: ./build/lwaftr-pdv $fs $r $xpts $to $n $m 0"
+	echo "Command line is: ./build/lwaftr-pdv $fs $r $xpts $to $n $m 0" >> pdvtest.log
 	# Execute the test program
-	./build/lw4o6_tester $fs $r $xpts $to $n $m 0 > temp.out 2>&1
+	./build/lwaftr-pdv $fs $r $xpts $to $n $m 0 > temp.out 2>&1
 	# Log and print out info
 	cat temp.out >> pdvtest.log
 	cat temp.out | tail

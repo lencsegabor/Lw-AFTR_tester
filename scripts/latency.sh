@@ -1,15 +1,15 @@
 #!/bin/bash
 #Parameters
-impl="lw4o6tester-LAT-snabb-10G-1023_lwB4-Fg100" # name of the tested implementation (used for logging)
+impl="tester-3200MHz-2-4-6-8-10G-S-3-lwB4-4-Fg-100-DUT-XDP-latency" # name of the tested implementation (used for logging)
 dir="b" # valid values: b,f,r; b: bidirectional, f: forward (Left to Right, 6 --> 4), r: reverse (Right to Left, 6 <-- 4) 
-r=117464 # frame rate determined by thropughput measurement
+r=1753544 # frame rate determined by thropughput measurement
 fs=84 # IPv6 frame size; IPv4 frame size is always 20 bytes less 
 xpts=120 # duration (in seconds) of an experiment instance
 to=2000 # timeout in milliseconds
 n=2 # foreground traffic, if ( frame_counter % n < m ) 
 m=2 # E.g. n=m=2 is all foreground traffic; n=2,m=0 is all background traffic; n=10,m=9 is 90% fg and 10% bg
 delay=60 # delay before the insertion of the first identifying tag
-tags=500 # number of identifying tags
+tags=50000 # number of identifying tags
 sleept=10 # sleeping time between the experiments
 no_exp=20 # number of experiments
 res_dir="results" # base directory for the results (they will be copied there at the end)
@@ -48,10 +48,10 @@ for (( N=1; N <= $no_exp; N++ ))
 do
 	echo "Exectuting experiment #$N..."
 	echo "Exectuting experiment #$N..." >> latencytest.log
-	echo "Command line is: ./build/lw4o6_tester $fs $r $xpts $to $n $m $delay $tags"
-	echo "Command line is: ./build/lw4o6_tester $fs $r $xpts $to $n $m $delay $tags" >> latencytest.log
+	echo "Command line is: ./build/lwaftr-lat $fs $r $xpts $to $n $m $delay $tags"
+	echo "Command line is: ./build/lwaftr-lat $fs $r $xpts $to $n $m $delay $tags" >> latencytest.log
 	# Execute the test program
-	./build/lw4o6_tester $fs $r $xpts $to $n $m $delay $tags > temp.out 2>&1
+	./build/lwaftr-lat $fs $r $xpts $to $n $m $delay $tags > temp.out 2>&1
 	# Log and print out info
 	cat temp.out >> latencytest.log
 	cat temp.out | tail
