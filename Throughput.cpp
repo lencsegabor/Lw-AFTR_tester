@@ -363,6 +363,10 @@ int Throughput::readlwB4Data(const char *filename) {
           std::cerr << "Input Error: 'psid' must be < 2**psid_length" << std::endl;
           return -1;
         }
+      } else if ( nonComment(line) ) { // It may be too strict!
+        std::cerr << "Input Error: Cannot interpret '" << filename << "' line " << line_no << ":" << std::endl;
+        std::cerr << line << std::endl;
+        return -1;
       }
     }
   }   
